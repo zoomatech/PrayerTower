@@ -144,19 +144,25 @@ final class AccessibilityAuditTests: XCTestCase {
             print("FRAMES \(place) '\(t.label.prefix(30))' at \(t.frame) hittable \(t.isHittable)")
         }
         let width = app.windows.firstMatch.frame.width
-        try app.performAccessibilityAudit { issue in
-            if issue.auditType == .contrast, let frame = issue.element?.frame, let shot {
-                print("PIXELS \(place) '\(issue.element?.label ?? "")': \(Self.colors(in: frame, of: shot, scale: CGFloat(shot.width) / width))")
+        // Contrast on its own, before the rest: within one audit the Dynamic Type check enlarges the
+        // text and moves the words, and the contrast check was then measured at the moved places on
+        // the unmoved picture (Blossom Garden's 'Riley': on screen at y 360, reported at y 409, over
+        // bare card), so it read the card's colors and no text.
+        for types in [XCUIAccessibilityAuditType.contrast, .all.subtracting(.contrast)] {
+            try app.performAccessibilityAudit(for: types) { issue in
+                if issue.auditType == .contrast, let frame = issue.element?.frame, let shot {
+                    print("PIXELS \(place) '\(issue.element?.label ?? "")': \(Self.colors(in: frame, of: shot, scale: CGFloat(shot.width) / width))")
+                }
+                let element = issue.element
+                // An element with no place on screen (an infinite or empty frame) can't be measured there.
+                if let frame = element?.frame, !frame.origin.x.isFinite || !frame.origin.y.isFinite || frame.isEmpty || !visible.contains(frame) { return true }
+                // Advisory only, as in UIWalks/MainScreensWalk.swift: the text does grow, just not by the
+                // audit's full step (a system row button, e.g. sign-in's "Forgot your password?").
+                if issue.compactDescription.contains("partially unsupported") { return true }
+                let what = element.map { "\($0.elementType.rawValue) '\($0.label)' id '\($0.identifier)' at \($0.frame)" } ?? "no element"
+                XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
+                return true
             }
-            let element = issue.element
-            // An element with no place on screen (an infinite or empty frame) can't be measured there.
-            if let frame = element?.frame, !frame.origin.x.isFinite || !frame.origin.y.isFinite || frame.isEmpty || !visible.contains(frame) { return true }
-            // Advisory only, as in UIWalks/MainScreensWalk.swift: the text does grow, just not by the
-            // audit's full step (a system row button, e.g. sign-in's "Forgot your password?").
-            if issue.compactDescription.contains("partially unsupported") { return true }
-            let what = element.map { "\($0.elementType.rawValue) '\($0.label)' id '\($0.identifier)' at \($0.frame)" } ?? "no element"
-            XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
-            return true
         }
     }
 
