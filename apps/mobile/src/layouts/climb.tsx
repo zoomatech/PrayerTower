@@ -14,7 +14,7 @@
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
 import type { Card, Comment, FeedTheme } from '@prayer-tower/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, FlatList, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Animated, Easing, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
 
 import { CardSurface } from '@/components/post-card';
@@ -25,6 +25,7 @@ import { repliesAt, useCommentActions, usePostComments } from '@/skins/comments'
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
+import { CachedPhoto } from '@/components/cached-photo';
 
 const DEFAULTS = { backdrop: '#B8AB96', slab: '#F1EBE0' };
 type ClimbTokens = typeof DEFAULTS;
@@ -449,7 +450,7 @@ function Parent({ card }: { card: Card }) {
     <View style={styles.parent} testID="climb-parent">
       <View style={styles.parentHead}>
         <View style={styles.oval}>
-          {card.author.photoUrl ? <Image source={{ uri: card.author.photoUrl }} style={styles.ovalPhoto} accessibilityIgnoresInvertColors /> : <Text style={styles.ovalText}>{initials}</Text>}
+          {card.author.photoUrl ? <CachedPhoto url={card.author.photoUrl} style={styles.ovalPhoto} /> : <Text style={styles.ovalText}>{initials}</Text>}
         </View>
         <Text style={styles.bigName} numberOfLines={1}>
           {name}

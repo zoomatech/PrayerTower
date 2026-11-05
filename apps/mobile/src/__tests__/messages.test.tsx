@@ -77,6 +77,8 @@ describe('A conversation', () => {
       jest.advanceTimersByTime(5000);
     });
     expect(mocked.conversation.mock.calls.length).toBe(before + 1);
+    // Nothing new came, so "read" was sent once, not on every check.
+    expect(mocked.markConversationRead).toHaveBeenCalledTimes(1);
   });
 
   it('shows crisis support when a message mentions self-harm', async () => {

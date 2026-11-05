@@ -194,7 +194,8 @@ public struct WitnessNote: Codable, Sendable, Equatable, Identifiable {
     public let author: String
 }
 
-private struct Branch: Decodable { let posts: [Card] }
+/// One page of your branch; nextPage is nil on the last.
+public struct BranchPage: Decodable, Sendable { public let posts: [Card]; public let nextPage: Int? }
 private struct Shows: Decodable { let shows: [PodcastShow] }
 private struct Started: Decodable { let roomUrl: String }
 private struct StaffPlans: Decodable { let plans: [StaffReadingPlan] }
@@ -208,7 +209,7 @@ private let nothing = [String: String]()
 
 extension APIClient {
     public func awardHall() async throws -> AwardHall { try await get("/awards") }
-    public func myBranch() async throws -> [Card] { try await (get("/me/branch") as Branch).posts }
+    public func myBranch(page: Int = 0) async throws -> BranchPage { try await get("/me/branch", query: ["page": String(page)]) }
     public func podcasts() async throws -> [PodcastShow] { try await (get("/podcasts") as Shows).shows }
 
     public func liveNow() async throws -> LiveNow { try await get("/live") }

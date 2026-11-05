@@ -469,6 +469,17 @@ export async function listComments(q: Queryable, postId: string, viewerId: strin
   return out;
 }
 
+/** The first n top-level conversations of a thread-ordered comment list, each with its replies. */
+export function firstThreads<C extends { depth: number }>(comments: C[], n: number): C[] {
+  let threads = 0;
+  const out: C[] = [];
+  for (const c of comments) {
+    if (c.depth === 0 && ++threads > n) break;
+    out.push(c);
+  }
+  return out;
+}
+
 // Reactions and thanks ---------------------------------------------------------------
 
 export const NewReaction = z.discriminatedUnion('kind', [
@@ -531,11 +542,11 @@ export async function askToPray(q: Queryable, senderId: string, postId: string, 
   const senderName = hidden ? 'Someone' : (sender?.display_name ?? 'Someone');
   // "Carol in Albuquerque", only for recipients in the post's community (townsFor checks the switch).
   const names = new Map<string, string>();
-  if (!hidden) {
-    for (const r of recipients) {
-      const town = (await townsFor(q, [{ postId: post.id, communityId: post.community_id, userId: senderId }], r.id)).get(post.id);
-      if (town) names.set(r.id, `${senderName} in ${town}`);
-    }
+  // Every recipient is in the post's community (checked above), so the town is the same for all:
+  // one lookup, not one per recipient.
+  if (!hidden && recipients.length) {
+    const town = (await townsFor(q, [{ postId: post.id, communityId: post.community_id, userId: senderId }], recipients[0]!.id)).get(post.id);
+    if (town) for (const r of recipients) names.set(r.id, `${senderName} in ${town}`);
   }
   return {
     recipients: recipients.map((r) => r.id),
@@ -559,28 +570,30 @@ export async function thank(q: Queryable, userId: string, postId: string, input:
   if (post.user_id !== userId) throw forbidden('Only the poster can send thanks');
   const picked = input.recipientIds && new Set(input.recipientIds);
   const recipients = (await prayedBy(q, postId, userId)).filter((id) => !picked || picked.has(id));
-  for (const r of recipients) {
-    await q.query('insert into public.thanks (post_id, user_id, recipient_id, icon, message) values ($1, $2, $3, $4, $5)', [
-      postId,
-      userId,
-      r,
-      input.icon,
-      input.message ?? null,
-    ]);
+  // One insert for everyone thanked, not one per person.
+  if (recipients.length) {
+    await q.query(
+      'insert into public.thanks (post_id, user_id, recipient_id, icon, message) select $1::uuid, $2::uuid, r, $4::text, $5::text from unnest($3::uuid[]) as r',
+      [postId, userId, recipients, input.icon, input.message ?? null],
+    );
   }
   return { post, recipients };
 }
 
 /** Who prayed for a post, by name or "Anonymous", with the total. */
-export async function prayers(q: Queryable, postId: string, viewerId: string | null) {
-  const { rows } = await q.query<{ id: string; display_name: string; handle: string | null; is_anonymous: boolean; last_prayed_at: Date }>(
-    `select p.id, p.display_name, p.handle, bool_and(e.is_anonymous) as is_anonymous, max(e.created_at) as last_prayed_at
+export async function prayers(q: Queryable, postId: string, viewerId: string | null, limit?: number) {
+  const { rows } = await q.query<{ id: string; display_name: string; handle: string | null; is_anonymous: boolean; last_prayed_at: Date; total: number }>(
+    `select p.id, p.display_name, p.handle, bool_and(e.is_anonymous) as is_anonymous, max(e.created_at) as last_prayed_at,
+            (count(*) over ())::int as total
        from public.prayer_events e join public.profiles p on p.id = e.user_id
-      where e.post_id = $1 group by p.id order by last_prayed_at desc`,
-    [postId],
+      where e.post_id = $1 group by p.id order by last_prayed_at desc, p.id
+      limit $2`,
+    [postId, limit ?? null],
   );
+  // The total is counted before the limit (window function), so no rows means nobody prayed.
+  const count = rows[0]?.total ?? 0;
   return {
-    count: rows.length,
+    count,
     people: rows.map((r) => ({ ...presentIdentity(r, r.is_anonymous, viewerId), lastPrayedAt: r.last_prayed_at })),
   };
 }

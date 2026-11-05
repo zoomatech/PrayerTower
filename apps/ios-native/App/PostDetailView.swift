@@ -13,6 +13,11 @@ struct PostDetailView: View {
     @State private var card: Card?
     @State private var comments: [ThreadedComment] = []
     @State private var prayers: Prayers?
+    /// A popular request opens with its first 20 conversations and names; "+ more" brings the rest (Steve, 2026-11-05).
+    @State private var showAll = false
+    @State private var allPrayed = false
+    @State private var threads: Int?
+    private static let firstPage = 20
     @State private var text = ""
     @State private var asUpdate = false
     @State private var replyTo: PrayerTowerKit.Comment?
@@ -183,6 +188,13 @@ struct PostDetailView: View {
         if !p.people.isEmpty {
             Text(p.people.map(\.displayName).joined(separator: ", ")).font(.footnote).foregroundStyle(Color.subtle)
         }
+        if p.count > p.people.count {
+            Button(w("post.morePrayed", ["n": String(p.count - p.people.count)])) {
+                allPrayed = true
+                Task { await load() }
+            }
+            .font(.footnote)
+        }
     }
 
     // MARK: Comments
@@ -223,6 +235,13 @@ struct PostDetailView: View {
                 .font(.caption)
             }
             .padding(.leading, CGFloat(item.depth) * 16)
+        }
+        let shown = comments.filter { $0.depth == 0 }.count
+        if !showAll, let threads, threads > shown {
+            Button(w("post.showMore", ["n": String(threads - shown)])) {
+                showAll = true
+                Task { await load() }
+            }
         }
     }
 
@@ -267,8 +286,10 @@ struct PostDetailView: View {
         do {
             let c = try await api.post(postId)
             card = c
-            comments = CommentThread.ordered(try await api.comments(postId: postId))
-            if !Compose.discussionTypes.contains(c.postType) { prayers = try? await api.prayers(postId: postId) }
+            let page = try await api.comments(postId: postId, limit: showAll ? nil : Self.firstPage)
+            comments = CommentThread.ordered(page.comments)
+            threads = page.threads
+            if !Compose.discussionTypes.contains(c.postType) { prayers = try? await api.prayers(postId: postId, limit: allPrayed ? nil : Self.firstPage) }
             if model.features["replyChoice"] { replyChoice = try? await api.replyChoice(postId: postId) }
             error = nil
         } catch let e as APIError where e.needsCode {
@@ -292,6 +313,8 @@ struct PostDetailView: View {
             replyTo = nil
             asUpdate = false
             error = nil
+            // A new comment may be past the first conversations, so show them all.
+            showAll = true
             await load()
         } catch {
             // A resting thread's "reply again in N minutes" is shown as the server wrote it.
@@ -364,7 +387,7 @@ struct PostDetailView: View {
                 return
             }
             AccessibilityNotification.Announcement("\(action.name(model.wording)): done").post()
-            prayers = try? await api.prayers(postId: card.id)
+            prayers = try? await api.prayers(postId: card.id, limit: allPrayed ? nil : Self.firstPage)
         }
     }
 

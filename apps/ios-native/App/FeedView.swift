@@ -8,6 +8,7 @@ struct FeedView: View {
     /// The member's feed skin; nil is the plain column.
     @State private var theme: FeedTheme?
     @State private var nextPage: Int?
+    @State private var loadingMore = false
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
     /// The writing screen, open, with whatever was already typed in a skin's own post box. (An
@@ -207,10 +208,21 @@ struct FeedView: View {
         nextPage = page.nextPage
     }
 
+    /// The next page when the last card shows. One request at a time (the last row's task could
+    /// start it twice), and a failure says so instead of the feed just stopping.
     private func more() async {
-        guard let page = nextPage, let next = try? await model.store.api.feed(page: page) else { return }
-        posts += next.posts.filter { p in !posts.contains { $0.id == p.id } }
-        nextPage = next.nextPage
+        guard let page = nextPage, !loadingMore else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        do {
+            let next = try await model.store.api.feed(page: page)
+            let have = Set(posts.map(\.id))
+            posts += next.posts.filter { !have.contains($0.id) }
+            nextPage = next.nextPage
+        } catch {
+            // A short notice; the posts already shown stay on screen (the error overlay covers them).
+            notice = error.localizedDescription
+        }
     }
 
     private func act(_ action: CardAction, on card: Card) {

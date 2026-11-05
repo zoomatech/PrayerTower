@@ -83,6 +83,8 @@ struct AwardHallView: View {
 struct BranchView: View {
     @Environment(AppModel.self) private var model
     @State private var cards: [Card]?
+    @State private var nextPage: Int?
+    @State private var loadingMore = false
     @State private var error: String?
     private var w: Words { model.words }
 
@@ -97,7 +99,9 @@ struct BranchView: View {
                         if c.counts.prayers > 0 { Text(w("card.praying", count: c.counts.prayers)).font(.caption).foregroundStyle(Color.subtle) }
                     }
                 }
+                .task { if c.id == cards?.last?.id { await more() } }
             }
+            if loadingMore { ProgressView().frame(maxWidth: .infinity) }
             if let error { Text(error).foregroundStyle(Color.danger) }
         }
         .navigationTitle(w("vine.branchTitle"))
@@ -105,7 +109,26 @@ struct BranchView: View {
         .refreshable { await load() }
     }
 
-    private func load() async { await run($error) { cards = try await model.store.api.myBranch() } }
+    private func load() async {
+        await run($error) {
+            let page = try await model.store.api.myBranch()
+            cards = page.posts
+            nextPage = page.nextPage
+        }
+    }
+
+    /// The next page when the last row shows; one request at a time.
+    private func more() async {
+        guard let page = nextPage, !loadingMore else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        await run($error) {
+            let next = try await model.store.api.myBranch(page: page)
+            let have = Set((cards ?? []).map(\.id))
+            cards = (cards ?? []) + next.posts.filter { !have.contains($0.id) }
+            nextPage = next.nextPage
+        }
+    }
 }
 
 struct SquireBoardView: View {
