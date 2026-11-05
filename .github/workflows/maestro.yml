@@ -136,14 +136,17 @@ jobs:
           MAESTRO_DRIVER_STARTUP_TIMEOUT: 600000
           MAESTRO_CLI_NO_ANALYTICS: 1
         # Maestro's iOS driver on these runners sometimes drops ("Device became unreachable") or
-        # doesn't start, so each flow runs on its own and gets a second try when it fails.
+        # doesn't start, so each flow runs on its own and gets up to three tries.
         run: |
           failed=""
           for f in .maestro/0*.yaml; do
             n=$(basename "$f" .yaml)
-            maestro test "$f" --format=JUNIT --output="maestro-$n.xml" --test-output-dir="maestro-output/$n" \
-              || { echo "Trying $n again"; maestro test "$f" --format=JUNIT --output="maestro-$n.xml" --test-output-dir="maestro-output/$n-retry"; } \
-              || failed="$failed $n"
+            ok=""
+            for try in 1 2 3; do
+              maestro test "$f" --format=JUNIT --output="maestro-$n.xml" --test-output-dir="maestro-output/$n-$try" && { ok=1; break; }
+              echo "$n failed on try $try"
+            done
+            [ -n "$ok" ] || failed="$failed $n"
           done
           python3 -c 'import sys,glob; parts=[open(x).read().split("<testsuites>",1)[1].rsplit("</testsuites>",1)[0] for x in sorted(glob.glob("maestro-0*.xml"))]; open("maestro-report.xml","w").write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>"+"".join(parts)+"</testsuites>\n")' || true
           [ -z "$failed" ] || { echo "Failed:$failed"; exit 1; }
@@ -154,7 +157,7 @@ jobs:
         run: |
           # One line per flow: name, result and the first line of the reason (stack traces are in the artifact).
           python3 -c 'import sys,xml.etree.ElementTree as E; [print(c.get("name"), "->", c.get("status"), ((c.find("failure").text or "").splitlines() or [""])[0][:300] if c.find("failure") is not None else "") for c in E.parse(sys.argv[1]).iter("testcase")]' maestro-report.xml 2>/dev/null || true
-          for f in $(find maestro-output -name 'commands-*.json' 2>/dev/null); do
+          for f in $(find maestro-output ~/.maestro/tests -name 'commands-*.json' 2>/dev/null | head -12); do
             echo "== $f"
             python3 -c 'import json,sys; [print(json.dumps(c.get("command"))[:300], "->", (c.get("metadata") or {}).get("status"), ((c.get("metadata") or {}).get("error") or {}).get("message","")) for c in json.load(open(sys.argv[1]))]' "$f" | tail -8
           done
