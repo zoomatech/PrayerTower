@@ -135,6 +135,16 @@ The native Swift app adds two Bible searches on the device (`apps/ios-native/Sou
 
   Indexing once on the Mac: ancient writings 16 minutes, world classics 4, oldest texts 2, the Apocrypha 1. Tests: `TextGroupsTests`, `HybridTextSearchTests`, `EveryTextSearchTests`.
 
+### Research desk (native app)
+
+Beside Search the texts, wherever the King James Bible is offered (Steve, 2026-11-05: "the infopanels for the build news and scholar social feeds should appear to the right of the bible search"): to its right on iPad and Mac, after the search on iPhone (`App/ResearchDeskView.swift`). From the Ehrmanator Research Desk (`ehrmanator-desk.html`, researched Nov 4–5, 2026), bundled as `PrayerTowerKit/Resources/research-desk.json` (`ResearchDesk.swift`):
+
+- **News panels**: the desk's eleven panels (Ark Encounter, Creation Museum, flood and Ark hunts, scholars in the news), each with its side, date, points and sources, filtered by topic; a live news search (Google News over the past week, month, year or any time, and Bing News) and the desk's preset searches.
+- **Scholar feeds**: Dan McClellan, Bart Ehrman and Elaine Pagels, each account linked; words typed once give a search link for every account (the desk's own addresses, checked by `ResearchDeskTests`). McClellan's "Podcast episodes" searches the index here. The skeptic and scholarly outlets follow.
+- **McClellan index**: Data Over Dogma episodes 1–187 by topic or by number, found by episode number or by words in the title and topic names, each with YouTube and Apple Podcasts links.
+
+Links only: nothing is fetched; each opens in the browser. To refresh the content, re-make `research-desk.json` from a newer desk page.
+
 ## How the search works
 
 `apps/server/src/modules/library/search.ts` is a line-for-line port of `VerseLibrary.passageSearch` and `PassageWords` in Winstons Syndicate (`Packages/SyndicateCore/Sources/ZoomaReference/VerseSearch.swift`):

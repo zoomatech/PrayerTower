@@ -1,0 +1,2149 @@
+{
+ "format_version": 1,
+ "about": "Research desk panels beside Search the texts, from the Ehrmanator Research Desk (ehrmanator-desk.html, researched Nov 4–5, 2026): news panels with a live news search, scholar feeds with a search link for each account, and Dan McClellan’s Data Over Dogma topical index.",
+ "news": {
+  "researched": "Current coverage researched on Nov 4–5, 2026. Each panel cites its source. Use the live search to pull anything newer.",
+  "items": [
+   {
+    "topic": "ark",
+    "side": "critic",
+    "date": "Aug 21–26, 2026",
+    "title": "Enquirer: Ark ticket sales down over the past decade",
+    "body": "The Cincinnati Enquirer reported declining Ark Encounter ticket sales. Ken Ham answered with a 10-minute video that gave no annual figures, citing only \"16 million+\" combined visitors since the Creation Museum opened. AiG's Mark Looy argued in a letter that tickets undercount free children and passholders.",
+    "points": [
+     "Attendance proxy comes from Williamstown's per-ticket safety fee, obtained by monthly open-records requests",
+     "Ham concedes the state tourism incentive ended because its 10-year term expired"
+    ],
+    "sources": [
+     {
+      "label": "The Natural Historian (R. Joel Duff), Aug 26",
+      "url": "https://thenaturalhistorian.com/2026/08/26/ken-ham-confirms-that-ark-attendance-is-declining/"
+     }
+    ]
+   },
+   {
+    "topic": "ark",
+    "side": "critic",
+    "date": "May 25, 2026",
+    "title": "Nine years of Ark attendance below projections",
+    "body": "William Trollinger tallies attendance against the 2013 feasibility study, which promised 1.2–2.0 million first-year visitors growing about 4% a year.",
+    "points": [
+     "Year 1 ≈ 800,000 (50% of projection)",
+     "Year 3 peak: 875,882 (51%)",
+     "Year 8: 682,101 (27%)",
+     "Year 9: 664,813 (26%)",
+     "Backed by $62M in Williamstown junk bonds and a $1.825M/yr state sales-tax rebate"
+    ],
+    "sources": [
+     {
+      "label": "Righting America",
+      "url": "https://rightingamerica.net/sinking-further-and-further-below-their-projections-the-facts-of-ark-encounter-attendance/"
+     }
+    ]
+   },
+   {
+    "topic": "ark",
+    "side": "critic",
+    "date": "Jul 29, 2026",
+    "title": "Ark misses its projections, but Kentucky GOP still loves it",
+    "body": "Paleontologist Daniel Phelps reports June 2026 sales of 96,004 tickets, up 4,520 from June 2025 but below 2024. An Ark representative told a state tourism committee it draws a million visitors a year, which Phelps disputes.",
+    "points": [
+     "Adult admission about $55; parking $15; zip lines $59–$144",
+     "Sales-tax rebate expires around July 2027"
+    ],
+    "sources": [
+     {
+      "label": "The Panda's Thumb",
+      "url": "https://pandasthumb.org/archives/2026/07/despite-failure-ky-gop-loves.html"
+     }
+    ]
+   },
+   {
+    "topic": "ark",
+    "side": "critic",
+    "date": "Jun 2–3, 2026",
+    "title": "\"Ark Encounter's decade-long disaster\"",
+    "body": "Friendly Atheist's 10-year retrospective on the subsidies (98 acres for $1, $62M in bonds, up to $18.25M in tax incentives), a promised 3,000 jobs, and attendance that never reached the low end of projections.",
+    "points": [],
+    "sources": [
+     {
+      "label": "Republished copy (PleaseLink.Me)",
+      "url": "https://www.pleaselink.me/2026/06/03/ark-encounters-decade-long-disaster-how-the-creationist-theme-park-failed-on-its-promises/"
+     },
+     {
+      "label": "Friendly Atheist",
+      "url": "https://www.friendlyatheist.com/"
+     }
+    ]
+   },
+   {
+    "topic": "ark",
+    "side": "aig",
+    "date": "Jul 3, 2026",
+    "title": "Ken Ham: \"Recent media lies about the Ark Encounter\"",
+    "body": "Answers in Genesis video rebutting a Cincinnati Enquirer opinion piece that called the attraction \"anti-science.\" Useful for quoting AiG's own framing.",
+    "points": [],
+    "sources": [
+     {
+      "label": "Answers in Genesis",
+      "url": "https://answersingenesis.org/videos/recent-media-lies-about-the-ark-encounter/"
+     }
+    ]
+   },
+   {
+    "topic": "ark",
+    "side": "aig",
+    "date": "Jul 2026",
+    "title": "Ark Encounter marks its 10th anniversary",
+    "body": "Business-press and AiG coverage of the July 2016 opening's tenth anniversary, with plans for new exhibits, a zoo, gardens and expansion.",
+    "points": [],
+    "sources": [
+     {
+      "label": "The Lane Report",
+      "url": "https://www.lanereport.com/188338/2026/07/ark-encounter-is-celebrating-its-10th-anniversary/"
+     },
+     {
+      "label": "Ark Encounter blog",
+      "url": "https://arkencounter.com/blog/2026/07/07/celebrating-10-years-at-ark-encounter/"
+     }
+    ]
+   },
+   {
+    "topic": "museum",
+    "side": "aig",
+    "date": "Aug 26, 2026",
+    "title": "Creation Museum opens \"Creature Feature\" exhibit",
+    "body": "New exhibit at the Petersburg, KY museum, following a construction program Ham described in January 2026. Watch these for claims to fact-check.",
+    "points": [],
+    "sources": [
+     {
+      "label": "AiG: Creature Feature",
+      "url": "https://answersingenesis.org/blogs/ken-ham/2026/08/26/creature-feature-opens-creation-museum/"
+     },
+     {
+      "label": "AiG: Construction updates",
+      "url": "https://answersingenesis.org/blogs/ken-ham/2026/01/15/creation-museum-construction-updates/"
+     }
+    ]
+   },
+   {
+    "topic": "flood",
+    "side": "scholar",
+    "date": "Oct 7, 2026",
+    "title": "Durupınar \"Noah's Ark\" claims: preliminary and inconclusive",
+    "body": "Religious-studies scholar Eric Vanden Eykel explains the Sivas Cumhuriyet University dig and the U.S. group Noah's Ark Scans behind viral \"100% confirmed\" posts. Geologists have long identified the site as a natural formation, and results run into 2027.",
+    "points": [
+     "Even Ken Ham urged caution about the claims",
+     "Dan McClellan covered it in Data Over Dogma #183, \"Noah's Ark: 100% Unconfirmed\" (Oct 5)"
+    ],
+    "sources": [
+     {
+      "label": "Religion Unplugged / The Conversation",
+      "url": "https://religionunplugged.com/news/2026/10/7/why-people-keep-looking-for-noahs-ark-in-turkey"
+     },
+     {
+      "label": "Kentucky's Ken Ham urges caution",
+      "url": "https://libertyonenews.com/kentuckys-ken-ham-urges-caution-as-turkey-dig-searches-for-noahs-ark/"
+     },
+     {
+      "label": "Durupinar Debunked (Substack)",
+      "url": "https://aaronjudkins.substack.com/p/durupinar-debunked"
+     }
+    ]
+   },
+   {
+    "topic": "scholars",
+    "side": "scholar",
+    "date": "Oct 10, 2026",
+    "title": "Dan McClellan goes on Joe Rogan, and some fans object",
+    "body": "The roughly 2.5-hour appearance covered the Bible as an evolving text and rebutted the mushroom-origins theory of Christianity. Some of his roughly 1.6 million followers called it inconsistent with his stance on misinformation.",
+    "points": [],
+    "sources": [
+     {
+      "label": "Salt Lake Tribune",
+      "url": "https://www.sltrib.com/religion/2026/10/10/lds-scholar-dan-mcclellan-appears/"
+     }
+    ]
+   },
+   {
+    "topic": "scholars",
+    "side": "scholar",
+    "date": "Mar 24, 2026",
+    "title": "Bart Ehrman publishes Love Thy Stranger",
+    "body": "Simon & Schuster history of Jesus' call to care for strangers and how it reshaped Western morality and politics.",
+    "points": [],
+    "sources": [
+     {
+      "label": "Simon & Schuster",
+      "url": "https://www.simonandschuster.com/books/9781668025031"
+     }
+    ]
+   },
+   {
+    "topic": "scholars",
+    "side": "scholar",
+    "date": "Jan 19, 2026",
+    "title": "Elaine Pagels on Miracles and Wonder",
+    "body": "Pagels continues touring her 2025 book on the historical Jesus through radio and podcast interviews rather than personal social media.",
+    "points": [],
+    "sources": [
+     {
+      "label": "WRVO Campbell Conversations",
+      "url": "https://www.wrvo.org/show/campbell-conversations-0/2026-01-19/elaine-pagels-on-the-campbell-conversations"
+     },
+     {
+      "label": "New Yorker Radio Hour",
+      "url": "https://audioscrape.com/podcast/the-new-yorker-radio-hour/episode/elaine-pagels-on-the-mysteries-of-jesus"
+     }
+    ]
+   }
+  ],
+  "filters": [
+   {
+    "id": "all",
+    "title": "All"
+   },
+   {
+    "id": "ark",
+    "title": "Ark Encounter"
+   },
+   {
+    "id": "museum",
+    "title": "Creation Museum"
+   },
+   {
+    "id": "flood",
+    "title": "Flood / Ark hunts"
+   },
+   {
+    "id": "scholars",
+    "title": "Scholars in the news"
+   }
+  ],
+  "sides": {
+   "critic": "Critical",
+   "aig": "AiG / Ark side",
+   "scholar": "Scholarly"
+  },
+  "presets": [
+   "Ark Encounter",
+   "Creation Museum",
+   "Answers in Genesis",
+   "Ken Ham",
+   "Durupinar Noah's Ark",
+   "Bart Ehrman",
+   "Elaine Pagels",
+   "Dan McClellan"
+  ]
+ },
+ "scholars": [
+  {
+   "name": "Dan McClellan",
+   "role": "Hebrew Bible scholar · Data Over Dogma",
+   "note": "TikTok is his largest platform (about 993k followers in Aug 2026). His \"stitch\" videos rebut viral Bible claims.",
+   "accounts": [
+    {
+     "platform": "TikTok",
+     "handle": "@maklelan",
+     "url": "https://www.tiktok.com/@maklelan"
+    },
+    {
+     "platform": "YouTube",
+     "handle": "@maklelan",
+     "url": "https://www.youtube.com/@maklelan"
+    },
+    {
+     "platform": "Instagram",
+     "handle": "@maklelan",
+     "url": "https://www.instagram.com/maklelan/"
+    },
+    {
+     "platform": "X / Twitter",
+     "handle": "@maklelan",
+     "url": "https://x.com/maklelan"
+    },
+    {
+     "platform": "Bluesky",
+     "handle": "maklelan.bsky.social",
+     "url": "https://bsky.app/profile/maklelan.bsky.social"
+    },
+    {
+     "platform": "Podcast",
+     "handle": "Data Over Dogma",
+     "url": "https://podcasts.apple.com/us/podcast/data-over-dogma/id1681418502"
+    },
+    {
+     "platform": "Patreon",
+     "handle": "maklelan · DataOverDogma",
+     "url": "https://www.patreon.com/maklelan"
+    },
+    {
+     "platform": "Website",
+     "handle": "maklelan.org",
+     "url": "https://maklelan.org"
+    },
+    {
+     "platform": "All links",
+     "handle": "linktr.ee/maklelan",
+     "url": "https://linktr.ee/maklelan"
+    }
+   ],
+   "search": [
+    {
+     "label": "TikTok",
+     "url": "https://www.tiktok.com/search?q={q}",
+     "prefix": "maklelan "
+    },
+    {
+     "label": "YouTube channel",
+     "url": "https://www.youtube.com/@maklelan/search?query={q}",
+     "prefix": ""
+    },
+    {
+     "label": "Bluesky",
+     "url": "https://bsky.app/search?q={q}",
+     "prefix": "from:maklelan.bsky.social "
+    },
+    {
+     "label": "X",
+     "url": "https://x.com/search?q={q}&f=live",
+     "prefix": "from:maklelan "
+    },
+    {
+     "label": "Podcast episodes",
+     "url": "#mcclellan",
+     "prefix": ""
+    },
+    {
+     "label": "Instagram (via Google)",
+     "url": "https://www.google.com/search?q={q}",
+     "prefix": "site:instagram.com/maklelan "
+    }
+   ]
+  },
+  {
+   "name": "Bart D. Ehrman",
+   "role": "New Testament scholar · UNC Chapel Hill",
+   "note": "His official site lists no Instagram, Bluesky or TikTok account. The blog is the most active outlet; full posts are for members.",
+   "accounts": [
+    {
+     "platform": "Blog",
+     "handle": "ehrmanblog.org",
+     "url": "https://ehrmanblog.org"
+    },
+    {
+     "platform": "YouTube",
+     "handle": "Bart D. Ehrman",
+     "url": "https://www.youtube.com/c/bartdehrman"
+    },
+    {
+     "platform": "Podcast",
+     "handle": "Misquoting Jesus",
+     "url": "https://www.bartehrman.com/podcast/"
+    },
+    {
+     "platform": "Facebook",
+     "handle": "AuthorBartEhrman",
+     "url": "https://www.facebook.com/AuthorBartEhrman"
+    },
+    {
+     "platform": "X / Twitter",
+     "handle": "@bartehrman",
+     "url": "https://x.com/bartehrman"
+    },
+    {
+     "platform": "LinkedIn",
+     "handle": "Bart Ehrman",
+     "url": "https://www.linkedin.com/in/bart-ehrman-5a87437"
+    },
+    {
+     "platform": "Website",
+     "handle": "bartehrman.com",
+     "url": "https://www.bartehrman.com"
+    }
+   ],
+   "search": [
+    {
+     "label": "Ehrman Blog",
+     "url": "https://ehrmanblog.org/?s={q}",
+     "prefix": ""
+    },
+    {
+     "label": "YouTube channel",
+     "url": "https://www.youtube.com/c/bartdehrman/search?query={q}",
+     "prefix": ""
+    },
+    {
+     "label": "X",
+     "url": "https://x.com/search?q={q}&f=live",
+     "prefix": "from:bartehrman "
+    },
+    {
+     "label": "Facebook (via Google)",
+     "url": "https://www.google.com/search?q={q}",
+     "prefix": "site:facebook.com/AuthorBartEhrman "
+    },
+    {
+     "label": "Podcast (via Google)",
+     "url": "https://www.google.com/search?q={q}",
+     "prefix": "\"Misquoting Jesus\" podcast "
+    }
+   ]
+  },
+  {
+   "name": "Elaine Pagels",
+   "role": "Historian of early Christianity · Princeton",
+   "note": "No official personal social media account turned up in searches. She reaches the public through interviews and podcasts, so search those instead.",
+   "accounts": [
+    {
+     "platform": "Faculty page",
+     "handle": "Princeton Religion",
+     "url": "https://religion.princeton.edu/people/elaine-pagels"
+    },
+    {
+     "platform": "Personal site",
+     "handle": "pagels.religion.princeton.edu",
+     "url": "https://pagels.religion.princeton.edu/about-0"
+    },
+    {
+     "platform": "Publisher",
+     "handle": "Penguin Random House",
+     "url": "https://www.penguinrandomhouse.com/authors/23062"
+    }
+   ],
+   "search": [
+    {
+     "label": "YouTube (newest first)",
+     "url": "https://www.youtube.com/results?search_query={q}&sp=CAI%253D",
+     "prefix": "\"Elaine Pagels\" "
+    },
+    {
+     "label": "Google News",
+     "url": "https://news.google.com/search?q={q}&hl=en-US&gl=US&ceid=US:en",
+     "prefix": "\"Elaine Pagels\" "
+    },
+    {
+     "label": "Podcast interviews (via Google)",
+     "url": "https://www.google.com/search?q={q}",
+     "prefix": "\"Elaine Pagels\" podcast "
+    },
+    {
+     "label": "Bluesky mentions",
+     "url": "https://bsky.app/search?q={q}",
+     "prefix": "\"Elaine Pagels\" "
+    }
+   ]
+  }
+ ],
+ "outlets": [
+  {
+   "name": "Righting America",
+   "url": "https://rightingamerica.net/",
+   "about": "William Trollinger's blog; the main source of Ark attendance analysis."
+  },
+  {
+   "name": "The Natural Historian",
+   "url": "https://thenaturalhistorian.com/",
+   "about": "Biologist R. Joel Duff on young-earth creationism and AiG claims."
+  },
+  {
+   "name": "The Panda's Thumb",
+   "url": "https://pandasthumb.org/",
+   "about": "Pro-evolution group blog; reprints Dan Phelps' Ark reporting."
+  },
+  {
+   "name": "Friendly Atheist",
+   "url": "https://www.friendlyatheist.com/",
+   "about": "Hemant Mehta's newsletter; regular Ark Encounter ticket-sales updates."
+  },
+  {
+   "name": "Bluesky biblical scholars",
+   "url": "https://blueskystarterpack.com/biblical-scholars",
+   "about": "Starter packs that follow dozens of biblical scholars in one click."
+  },
+  {
+   "name": "Ken Ham on X (to monitor)",
+   "url": "https://x.com/aigkenham",
+   "about": "The other side: where AiG answers critics first."
+  }
+ ],
+ "index": {
+  "title": "Data Over Dogma (Dan McClellan and Dan Beecher), episodes 1–187, Apr 8, 2023 to Nov 2, 2026.",
+  "topics": {
+   "creation": "Creation, Flood & Origins",
+   "hb": "Hebrew Bible & Ancient Israel",
+   "god": "God, Gods & Monotheism",
+   "jesus": "Jesus & the Gospels",
+   "paul": "Paul, Apostles & Early Church",
+   "text": "Bible Text, Canon & Translation",
+   "spirits": "Afterlife, Angels & Demons",
+   "end": "Prophecy & End Times",
+   "sex": "Sex, Gender & Marriage",
+   "ethics": "Ethics, Slavery & Violence",
+   "money": "Money, Poverty & Justice",
+   "politics": "Politics & Christian Nationalism",
+   "apol": "Apologetics & Pop-Culture Debunks",
+   "faith": "Belief, Identity & Deconstruction",
+   "jewish": "Judaism & Jewish Context",
+   "holiday": "Holidays",
+   "guest": "Guest Scholar"
+  },
+  "episodes": [
+   {
+    "number": 1,
+    "date": "Apr 08, 2023",
+    "title": "In the Beginning*",
+    "topics": [
+     "creation",
+     "hb"
+    ]
+   },
+   {
+    "number": 2,
+    "date": "Apr 17, 2023",
+    "title": "God's Wife with Francesca Stavrakopoulou",
+    "topics": [
+     "god",
+     "hb",
+     "guest"
+    ]
+   },
+   {
+    "number": 3,
+    "date": "Apr 24, 2023",
+    "title": "Why Is She Salt?",
+    "topics": [
+     "hb",
+     "creation"
+    ]
+   },
+   {
+    "number": 4,
+    "date": "May 01, 2023",
+    "title": "Ehrmageddon! With Bart Ehrman",
+    "topics": [
+     "jesus",
+     "text",
+     "guest"
+    ]
+   },
+   {
+    "number": 5,
+    "date": "May 08, 2023",
+    "title": "Betrayed by Dan Brown",
+    "topics": [
+     "apol",
+     "jesus"
+    ]
+   },
+   {
+    "number": 6,
+    "date": "May 15, 2023",
+    "title": "God Breathed?",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 7,
+    "date": "May 22, 2023",
+    "title": "So Many Gods!",
+    "topics": [
+     "god",
+     "hb"
+    ]
+   },
+   {
+    "number": 8,
+    "date": "May 29, 2023",
+    "title": "Contextual Healing with Aaron Higashi",
+    "topics": [
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 9,
+    "date": "Jun 05, 2023",
+    "title": "The Mark of the Best",
+    "topics": [
+     "end"
+    ]
+   },
+   {
+    "number": 10,
+    "date": "Jun 12, 2023",
+    "title": "Adam and Steve (what the Bible says about homosexuality)",
+    "topics": [
+     "sex"
+    ]
+   },
+   {
+    "number": 11,
+    "date": "Jun 19, 2023",
+    "title": "Will the Best Bible Please Stand Up?",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 12,
+    "date": "Jun 26, 2023",
+    "title": "The Blessing of the Magdalene w/ Elizabeth Schrader Polczer",
+    "topics": [
+     "jesus",
+     "text",
+     "sex",
+     "guest"
+    ]
+   },
+   {
+    "number": 13,
+    "date": "Jul 03, 2023",
+    "title": "Does God Regret this Podcast?",
+    "topics": [
+     "god",
+     "hb"
+    ]
+   },
+   {
+    "number": 14,
+    "date": "Jul 10, 2023",
+    "title": "Lilith Unfair",
+    "topics": [
+     "spirits",
+     "sex"
+    ]
+   },
+   {
+    "number": 15,
+    "date": "Jul 17, 2023",
+    "title": "The Dans Go to Hell",
+    "topics": [
+     "spirits"
+    ]
+   },
+   {
+    "number": 16,
+    "date": "Jul 24, 2023",
+    "title": "Apostlepalooza!",
+    "topics": [
+     "paul"
+    ]
+   },
+   {
+    "number": 17,
+    "date": "Jul 31, 2023",
+    "title": "The Case of the Missing Verses",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 18,
+    "date": "Aug 07, 2023",
+    "title": "The Devil Made Us Do It",
+    "topics": [
+     "spirits"
+    ]
+   },
+   {
+    "number": 19,
+    "date": "Aug 14, 2023",
+    "title": "I'll make you a STAR! With David A. Burnett",
+    "topics": [
+     "god",
+     "guest"
+    ]
+   },
+   {
+    "number": 20,
+    "date": "Aug 21, 2023",
+    "title": "I Knew a Guy Who Was SO OLD...",
+    "topics": [
+     "hb",
+     "creation"
+    ]
+   },
+   {
+    "number": 21,
+    "date": "Aug 28, 2023",
+    "title": "Did the Exodus Really Happen?",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 22,
+    "date": "Sep 04, 2023",
+    "title": "Connecting With Source",
+    "topics": [
+     "apol",
+     "faith"
+    ]
+   },
+   {
+    "number": 23,
+    "date": "Sep 11, 2023",
+    "title": "Abortion and the Bible",
+    "topics": [
+     "ethics"
+    ]
+   },
+   {
+    "number": 24,
+    "date": "Sep 18, 2023",
+    "title": "Tiptoe Through the Talmud with Miriam Anzovin",
+    "topics": [
+     "jewish",
+     "guest"
+    ]
+   },
+   {
+    "number": 25,
+    "date": "Sep 25, 2023",
+    "title": "A Beatitude Adjustment for Jordan Peterson",
+    "topics": [
+     "jesus",
+     "apol",
+     "politics"
+    ]
+   },
+   {
+    "number": 26,
+    "date": "Oct 02, 2023",
+    "title": "A Jewish Paul with Matthew Thiessen",
+    "topics": [
+     "paul",
+     "jewish",
+     "guest"
+    ]
+   },
+   {
+    "number": 27,
+    "date": "Oct 09, 2023",
+    "title": "Where Angels Fear to Swim",
+    "topics": [
+     "spirits"
+    ]
+   },
+   {
+    "number": 28,
+    "date": "Oct 16, 2023",
+    "title": "Angels and Demons",
+    "topics": [
+     "spirits"
+    ]
+   },
+   {
+    "number": 29,
+    "date": "Oct 23, 2023",
+    "title": "God's Big Fish Story",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 30,
+    "date": "Oct 30, 2023",
+    "title": "Christian Nationalism Ain't Christian: With Andrew Whitehead",
+    "topics": [
+     "politics",
+     "guest"
+    ]
+   },
+   {
+    "number": 31,
+    "date": "Nov 06, 2023",
+    "title": "The Ten (ish) Commandments",
+    "topics": [
+     "hb",
+     "ethics"
+    ]
+   },
+   {
+    "number": 32,
+    "date": "Nov 13, 2023",
+    "title": "The End is Near?",
+    "topics": [
+     "end"
+    ]
+   },
+   {
+    "number": 33,
+    "date": "Nov 20, 2023",
+    "title": "The Bible and Disability with Isaac Soon",
+    "topics": [
+     "ethics",
+     "guest"
+    ]
+   },
+   {
+    "number": 34,
+    "date": "Nov 27, 2023",
+    "title": "The Lion's Den",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 35,
+    "date": "Dec 04, 2023",
+    "title": "Who ACTUALLY Wrote the New Testament?",
+    "topics": [
+     "text",
+     "paul",
+     "jesus"
+    ]
+   },
+   {
+    "number": 36,
+    "date": "Dec 11, 2023",
+    "title": "The Why Question- With Jacob Wright",
+    "topics": [
+     "hb",
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 37,
+    "date": "Dec 18, 2023",
+    "title": "Follow That Star!",
+    "topics": [
+     "jesus",
+     "holiday"
+    ]
+   },
+   {
+    "number": 38,
+    "date": "Dec 25, 2023",
+    "title": "The [Three] [Wise Men] With Eric Vanden Eykel",
+    "topics": [
+     "jesus",
+     "holiday",
+     "guest"
+    ]
+   },
+   {
+    "number": 39,
+    "date": "Jan 01, 2024",
+    "title": "Revealing Revelation",
+    "topics": [
+     "end"
+    ]
+   },
+   {
+    "number": 40,
+    "date": "Jan 08, 2024",
+    "title": "The Joel McHale Episode!",
+    "topics": [
+     "apol"
+    ]
+   },
+   {
+    "number": 41,
+    "date": "Jan 15, 2024",
+    "title": "Modest is Hottest?",
+    "topics": [
+     "sex"
+    ]
+   },
+   {
+    "number": 42,
+    "date": "Jan 22, 2024",
+    "title": "Is Jesus God?",
+    "topics": [
+     "jesus",
+     "god"
+    ]
+   },
+   {
+    "number": 43,
+    "date": "Jan 29, 2024",
+    "title": "Jesus Murders A Tree",
+    "topics": [
+     "jesus"
+    ]
+   },
+   {
+    "number": 44,
+    "date": "Feb 05, 2024",
+    "title": "Biblical Marriage With Jennifer Bird",
+    "topics": [
+     "sex",
+     "guest"
+    ]
+   },
+   {
+    "number": 45,
+    "date": "Feb 12, 2024",
+    "title": "The Dead Sea Scrolls With Kipp Davis",
+    "topics": [
+     "text",
+     "jewish",
+     "guest"
+    ]
+   },
+   {
+    "number": 46,
+    "date": "Feb 19, 2024",
+    "title": "GENOCIDE!",
+    "topics": [
+     "hb",
+     "ethics"
+    ]
+   },
+   {
+    "number": 47,
+    "date": "Feb 26, 2024",
+    "title": "Introducing History Daily",
+    "topics": [
+     "apol"
+    ]
+   },
+   {
+    "number": 48,
+    "date": "Mar 04, 2024",
+    "title": "Jesus in History with Helen Bond",
+    "topics": [
+     "jesus",
+     "guest"
+    ]
+   },
+   {
+    "number": 49,
+    "date": "Mar 11, 2024",
+    "title": "Christian Slavery with Candida Moss",
+    "topics": [
+     "ethics",
+     "paul",
+     "guest"
+    ]
+   },
+   {
+    "number": 50,
+    "date": "Mar 18, 2024",
+    "title": "Easter and the Undead",
+    "topics": [
+     "jesus",
+     "holiday",
+     "spirits"
+    ]
+   },
+   {
+    "number": 51,
+    "date": "Mar 25, 2024",
+    "title": "Is Religion Make-Believe? With Neil Van Leeuwen",
+    "topics": [
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 52,
+    "date": "Apr 01, 2024",
+    "title": "What is a Woman... Biblically?",
+    "topics": [
+     "sex"
+    ]
+   },
+   {
+    "number": 53,
+    "date": "Apr 08, 2024",
+    "title": "The Holy Ghost (and Bears!)",
+    "topics": [
+     "spirits",
+     "god",
+     "hb"
+    ]
+   },
+   {
+    "number": 54,
+    "date": "Apr 15, 2024",
+    "title": "Black Hole Sun",
+    "topics": [
+     "creation"
+    ]
+   },
+   {
+    "number": 55,
+    "date": "Apr 22, 2024",
+    "title": "Can Jesus Forgive Sin?",
+    "topics": [
+     "jesus"
+    ]
+   },
+   {
+    "number": 56,
+    "date": "Apr 29, 2024",
+    "title": "The Genesis of Genesis with Dr David Carr",
+    "topics": [
+     "hb",
+     "creation",
+     "text",
+     "guest"
+    ]
+   },
+   {
+    "number": 57,
+    "date": "May 06, 2024",
+    "title": "Does the Bible say the Earth is Flat?",
+    "topics": [
+     "creation"
+    ]
+   },
+   {
+    "number": 58,
+    "date": "May 13, 2024",
+    "title": "Translation Frustration",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 59,
+    "date": "May 20, 2024",
+    "title": "The End(s) of Monotheism W/ David Burnett",
+    "topics": [
+     "god",
+     "guest"
+    ]
+   },
+   {
+    "number": 60,
+    "date": "May 27, 2024",
+    "title": "Silence, Woman!",
+    "topics": [
+     "sex",
+     "paul"
+    ]
+   },
+   {
+    "number": 61,
+    "date": "Jun 03, 2024",
+    "title": "Christmaker! With James McGrath",
+    "topics": [
+     "jesus",
+     "god",
+     "guest"
+    ]
+   },
+   {
+    "number": 62,
+    "date": "Jun 10, 2024",
+    "title": "The Book of Enoch",
+    "topics": [
+     "text",
+     "spirits"
+    ]
+   },
+   {
+    "number": 63,
+    "date": "Jun 17, 2024",
+    "title": "Wrastlin' With God",
+    "topics": [
+     "hb",
+     "god"
+    ]
+   },
+   {
+    "number": 64,
+    "date": "Jun 24, 2024",
+    "title": "The Historicity of David",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 65,
+    "date": "Jul 01, 2024",
+    "title": "I Got Soul, and I'm Super Bad",
+    "topics": [
+     "spirits"
+    ]
+   },
+   {
+    "number": 66,
+    "date": "Jul 08, 2024",
+    "title": "Thou Shalt Not",
+    "topics": [
+     "ethics",
+     "hb"
+    ]
+   },
+   {
+    "number": 67,
+    "date": "Jul 15, 2024",
+    "title": "Prophets, Kings, and Terrible Men with Aaron Higashi",
+    "topics": [
+     "hb",
+     "guest"
+    ]
+   },
+   {
+    "number": 68,
+    "date": "Jul 22, 2024",
+    "title": "Take My Wife... Please!",
+    "topics": [
+     "sex",
+     "hb"
+    ]
+   },
+   {
+    "number": 69,
+    "date": "Jul 29, 2024",
+    "title": "Gospel Authorship with Michael Kok",
+    "topics": [
+     "jesus",
+     "text",
+     "guest"
+    ]
+   },
+   {
+    "number": 70,
+    "date": "Aug 05, 2024",
+    "title": "Out of Nothing",
+    "topics": [
+     "creation",
+     "god"
+    ]
+   },
+   {
+    "number": 71,
+    "date": "Aug 12, 2024",
+    "title": "The Rapture is not Coming!",
+    "topics": [
+     "end"
+    ]
+   },
+   {
+    "number": 72,
+    "date": "Aug 19, 2024",
+    "title": "The Truth About Ruth",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 73,
+    "date": "Aug 26, 2024",
+    "title": "Bible Magic!",
+    "topics": [
+     "apol"
+    ]
+   },
+   {
+    "number": 74,
+    "date": "Sep 02, 2024",
+    "title": "The Fabric Conspiracies",
+    "topics": [
+     "apol"
+    ]
+   },
+   {
+    "number": 75,
+    "date": "Sep 09, 2024",
+    "title": "Shrouded in Mystery",
+    "topics": [
+     "apol",
+     "jesus"
+    ]
+   },
+   {
+    "number": 76,
+    "date": "Sep 16, 2024",
+    "title": "Pay Your Tithing!",
+    "topics": [
+     "money"
+    ]
+   },
+   {
+    "number": 77,
+    "date": "Sep 23, 2024",
+    "title": "What is an Atheist?",
+    "topics": [
+     "faith"
+    ]
+   },
+   {
+    "number": 78,
+    "date": "Sep 30, 2024",
+    "title": "The Biblical View of Immigrants",
+    "topics": [
+     "politics",
+     "ethics"
+    ]
+   },
+   {
+    "number": 79,
+    "date": "Oct 07, 2024",
+    "title": "Who is a True Christian w/ David Congdon",
+    "topics": [
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 80,
+    "date": "Oct 14, 2024",
+    "title": "Omni Everything?",
+    "topics": [
+     "god"
+    ]
+   },
+   {
+    "number": 81,
+    "date": "Oct 21, 2024",
+    "title": "You're Speaking My Language!",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 82,
+    "date": "Oct 28, 2024",
+    "title": "Deconstruction Zone with Rev Karla Kamstra",
+    "topics": [
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 83,
+    "date": "Nov 04, 2024",
+    "title": "The God-Forsaken Psalm",
+    "topics": [
+     "hb",
+     "jesus"
+    ]
+   },
+   {
+    "number": 84,
+    "date": "Nov 11, 2024",
+    "title": "The Demon Haunted Bible",
+    "topics": [
+     "spirits"
+    ]
+   },
+   {
+    "number": 85,
+    "date": "Nov 18, 2024",
+    "title": "Purify This! With Logan Williams",
+    "topics": [
+     "sex",
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 86,
+    "date": "Nov 25, 2024",
+    "title": "Debunking Jesus?",
+    "topics": [
+     "jesus",
+     "apol"
+    ]
+   },
+   {
+    "number": 87,
+    "date": "Dec 02, 2024",
+    "title": "The Dans Ruin Christmas",
+    "topics": [
+     "jesus",
+     "holiday"
+    ]
+   },
+   {
+    "number": 88,
+    "date": "Dec 09, 2024",
+    "title": "Josiah the Cult Killer",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 89,
+    "date": "Dec 16, 2024",
+    "title": "Spare the Rod... Please!",
+    "topics": [
+     "ethics"
+    ]
+   },
+   {
+    "number": 90,
+    "date": "Dec 23, 2024",
+    "title": "With Counter-Apologies",
+    "topics": [
+     "apol"
+    ]
+   },
+   {
+    "number": 91,
+    "date": "Dec 30, 2024",
+    "title": "Star Spangled Christian Nationalism With April Ajoy",
+    "topics": [
+     "politics",
+     "guest"
+    ]
+   },
+   {
+    "number": 92,
+    "date": "Jan 06, 2025",
+    "title": "The Curses of Cain and Ham",
+    "topics": [
+     "hb",
+     "creation",
+     "ethics"
+    ]
+   },
+   {
+    "number": 93,
+    "date": "Jan 13, 2025",
+    "title": "Banning the Bible?",
+    "topics": [
+     "politics",
+     "text"
+    ]
+   },
+   {
+    "number": 94,
+    "date": "Jan 20, 2025",
+    "title": "Getting to Gnow the Gnostics",
+    "topics": [
+     "paul",
+     "text"
+    ]
+   },
+   {
+    "number": 95,
+    "date": "Jan 27, 2025",
+    "title": "Uh-Oh, Jericho",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 96,
+    "date": "Feb 03, 2025",
+    "title": "\"Render Unto Caesar\" with Congressperson Eric Swalwell",
+    "topics": [
+     "politics",
+     "jesus",
+     "guest"
+    ]
+   },
+   {
+    "number": 97,
+    "date": "Feb 10, 2025",
+    "title": "The Neighborhood of Make-Believe",
+    "topics": [
+     "faith"
+    ]
+   },
+   {
+    "number": 98,
+    "date": "Feb 17, 2025",
+    "title": "Did Jesus Go to Hell?",
+    "topics": [
+     "spirits",
+     "jesus"
+    ]
+   },
+   {
+    "number": 99,
+    "date": "Feb 24, 2025",
+    "title": "Why Can't You Be Like Your Brother?",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 100,
+    "date": "Mar 03, 2025",
+    "title": "Give Me Your Slave!",
+    "topics": [
+     "ethics"
+    ]
+   },
+   {
+    "number": 101,
+    "date": "Mar 10, 2025",
+    "title": "The Slave Bible",
+    "topics": [
+     "ethics",
+     "text"
+    ]
+   },
+   {
+    "number": 102,
+    "date": "Mar 17, 2025",
+    "title": "The Dave Ramsey Takedown",
+    "topics": [
+     "money",
+     "apol"
+    ]
+   },
+   {
+    "number": 103,
+    "date": "Mar 24, 2025",
+    "title": "The Pastor Skeptic",
+    "topics": [
+     "faith"
+    ]
+   },
+   {
+    "number": 104,
+    "date": "Mar 31, 2025",
+    "title": "Hey Jude",
+    "topics": [
+     "paul",
+     "text"
+    ]
+   },
+   {
+    "number": 105,
+    "date": "Apr 07, 2025",
+    "title": "Wandering in the Wilderness with Angela Roskop Erisman",
+    "topics": [
+     "hb",
+     "guest"
+    ]
+   },
+   {
+    "number": 106,
+    "date": "Apr 14, 2025",
+    "title": "Usurer Error",
+    "topics": [
+     "money",
+     "ethics"
+    ]
+   },
+   {
+    "number": 107,
+    "date": "Apr 21, 2025",
+    "title": "Immigrant Apocalypse with Yii-Jan Lin",
+    "topics": [
+     "end",
+     "politics",
+     "guest"
+    ]
+   },
+   {
+    "number": 108,
+    "date": "Apr 28, 2025",
+    "title": "\"Biblical\" Marriage",
+    "topics": [
+     "sex"
+    ]
+   },
+   {
+    "number": 109,
+    "date": "May 05, 2025",
+    "title": "The Heart of Pharaoh",
+    "topics": [
+     "hb",
+     "god"
+    ]
+   },
+   {
+    "number": 110,
+    "date": "May 12, 2025",
+    "title": "God's Swear Jar",
+    "topics": [
+     "ethics"
+    ]
+   },
+   {
+    "number": 111,
+    "date": "May 19, 2025",
+    "title": "Just the Tip?",
+    "topics": [
+     "sex",
+     "jewish"
+    ]
+   },
+   {
+    "number": 112,
+    "date": "May 26, 2025",
+    "title": "Wash Your Own Feet!",
+    "topics": [
+     "jesus"
+    ]
+   },
+   {
+    "number": 113,
+    "date": "Jun 02, 2025",
+    "title": "Bibliomancy! The Biblical Dance with the Devil?",
+    "topics": [
+     "apol",
+     "faith"
+    ]
+   },
+   {
+    "number": 114,
+    "date": "Jun 09, 2025",
+    "title": "Pride Month vs. the Bible!",
+    "topics": [
+     "sex",
+     "politics"
+    ]
+   },
+   {
+    "number": 115,
+    "date": "Jun 16, 2025",
+    "title": "Did the Bible Steal its Stories?",
+    "topics": [
+     "hb",
+     "creation"
+    ]
+   },
+   {
+    "number": 116,
+    "date": "Jun 23, 2025",
+    "title": "Ethnicity and the Bible",
+    "topics": [
+     "ethics",
+     "hb"
+    ]
+   },
+   {
+    "number": 117,
+    "date": "Jun 30, 2025",
+    "title": "Is Allie Beth Stuckey a Sheep or a Goat?",
+    "topics": [
+     "politics",
+     "apol",
+     "jesus"
+    ]
+   },
+   {
+    "number": 118,
+    "date": "Jul 07, 2025",
+    "title": "Tucker Vs Ted: The Israel Throwdown",
+    "topics": [
+     "politics",
+     "end"
+    ]
+   },
+   {
+    "number": 119,
+    "date": "Jul 14, 2025",
+    "title": "Problematic Prophecy",
+    "topics": [
+     "end",
+     "hb"
+    ]
+   },
+   {
+    "number": 120,
+    "date": "Jul 21, 2025",
+    "title": "Save Me!",
+    "topics": [
+     "faith",
+     "jesus"
+    ]
+   },
+   {
+    "number": 121,
+    "date": "Jul 28, 2025",
+    "title": "Sister Wives",
+    "topics": [
+     "sex",
+     "hb"
+    ]
+   },
+   {
+    "number": 122,
+    "date": "Aug 04, 2025",
+    "title": "At-One-Ment",
+    "topics": [
+     "jesus",
+     "faith"
+    ]
+   },
+   {
+    "number": 123,
+    "date": "Aug 11, 2025",
+    "title": "Jezebel!",
+    "topics": [
+     "hb",
+     "sex"
+    ]
+   },
+   {
+    "number": 124,
+    "date": "Aug 18, 2025",
+    "title": "Who are the REAL Christians?",
+    "topics": [
+     "faith"
+    ]
+   },
+   {
+    "number": 125,
+    "date": "Aug 25, 2025",
+    "title": "Holy Sex Work?",
+    "topics": [
+     "sex",
+     "hb"
+    ]
+   },
+   {
+    "number": 126,
+    "date": "Sep 01, 2025",
+    "title": "Hear, O Israel!",
+    "topics": [
+     "jewish",
+     "god"
+    ]
+   },
+   {
+    "number": 127,
+    "date": "Sep 08, 2025",
+    "title": "The Indiana Jones Episode!",
+    "topics": [
+     "apol",
+     "hb"
+    ]
+   },
+   {
+    "number": 128,
+    "date": "Sep 15, 2025",
+    "title": "John! With Hugo Méndez",
+    "topics": [
+     "jesus",
+     "text",
+     "guest"
+    ]
+   },
+   {
+    "number": 129,
+    "date": "Sep 22, 2025",
+    "title": "Biblical Sex Toys???",
+    "topics": [
+     "sex"
+    ]
+   },
+   {
+    "number": 130,
+    "date": "Sep 29, 2025",
+    "title": "Blessed Baruch!",
+    "topics": [
+     "hb",
+     "text"
+    ]
+   },
+   {
+    "number": 131,
+    "date": "Oct 06, 2025",
+    "title": "You Want a Boat? I Noah Guy",
+    "topics": [
+     "creation",
+     "hb"
+    ]
+   },
+   {
+    "number": 132,
+    "date": "Oct 13, 2025",
+    "title": "Peter Thiel is Bankrupt! (Theologically)",
+    "topics": [
+     "politics",
+     "end",
+     "apol"
+    ]
+   },
+   {
+    "number": 133,
+    "date": "Oct 20, 2025",
+    "title": "The Adult(ery) Episode",
+    "topics": [
+     "sex"
+    ]
+   },
+   {
+    "number": 134,
+    "date": "Oct 27, 2025",
+    "title": "Don't Get Cross With Me",
+    "topics": [
+     "jesus"
+    ]
+   },
+   {
+    "number": 135,
+    "date": "Nov 03, 2025",
+    "title": "Should Wives Submit?",
+    "topics": [
+     "sex",
+     "paul"
+    ]
+   },
+   {
+    "number": 136,
+    "date": "Nov 10, 2025",
+    "title": "Close Encounters of the Catholic Kind",
+    "topics": [
+     "faith",
+     "text"
+    ]
+   },
+   {
+    "number": 137,
+    "date": "Nov 17, 2025",
+    "title": "It's a Jubilee!",
+    "topics": [
+     "money",
+     "hb"
+    ]
+   },
+   {
+    "number": 138,
+    "date": "Nov 24, 2025",
+    "title": "Who Deserves to Eat?",
+    "topics": [
+     "money",
+     "ethics"
+    ]
+   },
+   {
+    "number": 139,
+    "date": "Dec 01, 2025",
+    "title": "Polygamy!",
+    "topics": [
+     "sex",
+     "hb"
+    ]
+   },
+   {
+    "number": 140,
+    "date": "Dec 08, 2025",
+    "title": "Immaculate Apologetics?",
+    "topics": [
+     "jesus",
+     "apol",
+     "holiday"
+    ]
+   },
+   {
+    "number": 141,
+    "date": "Dec 15, 2025",
+    "title": "Did Jesus Fulfill Prophesy?",
+    "topics": [
+     "jesus",
+     "end"
+    ]
+   },
+   {
+    "number": 142,
+    "date": "Dec 22, 2025",
+    "title": "Not Original, Not Sin",
+    "topics": [
+     "creation",
+     "faith"
+    ]
+   },
+   {
+    "number": 143,
+    "date": "Dec 29, 2025",
+    "title": "Shiny Happy People!",
+    "topics": [
+     "faith"
+    ]
+   },
+   {
+    "number": 144,
+    "date": "Jan 05, 2026",
+    "title": "Bring Me the Head of John the Baptist!",
+    "topics": [
+     "jesus"
+    ]
+   },
+   {
+    "number": 145,
+    "date": "Jan 12, 2026",
+    "title": "The Holy Dunk",
+    "topics": [
+     "jesus",
+     "faith"
+    ]
+   },
+   {
+    "number": 146,
+    "date": "Jan 19, 2026",
+    "title": "Jesus is so Fulfilling!",
+    "topics": [
+     "jesus",
+     "end"
+    ]
+   },
+   {
+    "number": 147,
+    "date": "Jan 26, 2026",
+    "title": "Hiding God",
+    "topics": [
+     "god"
+    ]
+   },
+   {
+    "number": 148,
+    "date": "Feb 02, 2026",
+    "title": "Unforgivable!",
+    "topics": [
+     "jesus",
+     "spirits"
+    ]
+   },
+   {
+    "number": 149,
+    "date": "Feb 09, 2026",
+    "title": "Serving Up Scripture With Jennifer Garcia Bashaw and Aaron Higashi",
+    "topics": [
+     "jesus",
+     "money",
+     "guest"
+    ]
+   },
+   {
+    "number": 150,
+    "date": "Feb 16, 2026",
+    "title": "Written in the Stars!",
+    "topics": [
+     "jesus",
+     "apol"
+    ]
+   },
+   {
+    "number": 151,
+    "date": "Feb 23, 2026",
+    "title": "What Is The Bible?",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 152,
+    "date": "Mar 02, 2026",
+    "title": "Literally Not Literal!",
+    "topics": [
+     "text",
+     "faith"
+    ]
+   },
+   {
+    "number": 153,
+    "date": "Mar 09, 2026",
+    "title": "Everyone is Wrong About 2 John!",
+    "topics": [
+     "paul",
+     "text"
+    ]
+   },
+   {
+    "number": 154,
+    "date": "Mar 16, 2026",
+    "title": "The Bible Gets Sexy!",
+    "topics": [
+     "sex",
+     "hb"
+    ]
+   },
+   {
+    "number": 155,
+    "date": "Mar 23, 2026",
+    "title": "The Legend of the Septuagint",
+    "topics": [
+     "text",
+     "jewish"
+    ]
+   },
+   {
+    "number": 156,
+    "date": "Mar 30, 2026",
+    "title": "Killing in the Name Of",
+    "topics": [
+     "ethics",
+     "hb"
+    ]
+   },
+   {
+    "number": 157,
+    "date": "Apr 06, 2026",
+    "title": "In Chains: Slaves and Angels",
+    "topics": [
+     "ethics",
+     "spirits"
+    ]
+   },
+   {
+    "number": 158,
+    "date": "Apr 13, 2026",
+    "title": "I Will Have Mercy, Not Dogma",
+    "topics": [
+     "ethics",
+     "jesus"
+    ]
+   },
+   {
+    "number": 159,
+    "date": "Apr 20, 2026",
+    "title": "Mysterious Texts",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 160,
+    "date": "Apr 27, 2026",
+    "title": "Is the KJV Crap?",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 161,
+    "date": "May 04, 2026",
+    "title": "America (Almost Never) Reads the Bible",
+    "topics": [
+     "politics",
+     "faith"
+    ]
+   },
+   {
+    "number": 162,
+    "date": "May 11, 2026",
+    "title": "Even Heretics Deserve Rituals! With Jeremy Steele",
+    "topics": [
+     "faith",
+     "guest"
+    ]
+   },
+   {
+    "number": 163,
+    "date": "May 18, 2026",
+    "title": "The Queen of Heaven?",
+    "topics": [
+     "god",
+     "hb"
+    ]
+   },
+   {
+    "number": 164,
+    "date": "May 25, 2026",
+    "title": "C. S. Lewis and the Bible with Leslie Baynes",
+    "topics": [
+     "faith",
+     "apol",
+     "guest"
+    ]
+   },
+   {
+    "number": 165,
+    "date": "Jun 01, 2026",
+    "title": "Let's Get Weird!",
+    "topics": [
+     "hb",
+     "spirits"
+    ]
+   },
+   {
+    "number": 166,
+    "date": "Jun 08, 2026",
+    "title": "Inside purity culture and Christian nationalism with Monte Mader",
+    "topics": [
+     "sex",
+     "politics",
+     "guest"
+    ]
+   },
+   {
+    "number": 167,
+    "date": "Jun 15, 2026",
+    "title": "Sins of the (Grand)father",
+    "topics": [
+     "hb",
+     "ethics"
+    ]
+   },
+   {
+    "number": 168,
+    "date": "Jun 22, 2026",
+    "title": "Moloch, Mormons, and Mike Lee",
+    "topics": [
+     "politics",
+     "hb",
+     "god"
+    ]
+   },
+   {
+    "number": 169,
+    "date": "Jun 29, 2026",
+    "title": "The Twelve Tribes of Israel (Give or Take)",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 170,
+    "date": "Jul 06, 2026",
+    "title": "Faith vs. Works vs. Chaos Monsters",
+    "topics": [
+     "paul",
+     "creation",
+     "faith"
+    ]
+   },
+   {
+    "number": 171,
+    "date": "Jul 13, 2026",
+    "title": "Lean Not on Your Own Understanding (and Other Conversation-Enders)",
+    "topics": [
+     "faith",
+     "apol"
+    ]
+   },
+   {
+    "number": 172,
+    "date": "Jul 20, 2026",
+    "title": "A Trickster God and the Worst Wedding Ever",
+    "topics": [
+     "hb",
+     "god"
+    ]
+   },
+   {
+    "number": 173,
+    "date": "Jul 27, 2026",
+    "title": "Don't be a jerk...off?",
+    "topics": [
+     "sex",
+     "hb"
+    ]
+   },
+   {
+    "number": 174,
+    "date": "Aug 03, 2026",
+    "title": "No Originals, No Mercy",
+    "topics": [
+     "text"
+    ]
+   },
+   {
+    "number": 175,
+    "date": "Aug 10, 2026",
+    "title": "66 Books, 40 Authors, Zero Contradictions?",
+    "topics": [
+     "text",
+     "apol"
+    ]
+   },
+   {
+    "number": 176,
+    "date": "Aug 17, 2026",
+    "title": "The Grandfather of the Hebrew Bible (and What Is Zion?)",
+    "topics": [
+     "hb",
+     "text"
+    ]
+   },
+   {
+    "number": 177,
+    "date": "Aug 24, 2026",
+    "title": "Rod Almighty!",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 178,
+    "date": "Aug 31, 2026",
+    "title": "You Starve ... Glory Be To God?",
+    "topics": [
+     "hb",
+     "god"
+    ]
+   },
+   {
+    "number": 179,
+    "date": "Sep 07, 2026",
+    "title": "Help Meet, Not Help Yourself",
+    "topics": [
+     "sex",
+     "creation"
+    ]
+   },
+   {
+    "number": 180,
+    "date": "Sep 14, 2026",
+    "title": "Vancepocalypse Now (and Paul's Spiritual Gifts)",
+    "topics": [
+     "politics",
+     "paul"
+    ]
+   },
+   {
+    "number": 181,
+    "date": "Sep 21, 2026",
+    "title": "Dan Tells Dan About Tel Dan",
+    "topics": [
+     "hb"
+    ]
+   },
+   {
+    "number": 182,
+    "date": "Sep 28, 2026",
+    "title": "Old Testament God Bad, New Testament God Good?",
+    "topics": [
+     "god",
+     "hb"
+    ]
+   },
+   {
+    "number": 183,
+    "date": "Oct 05, 2026",
+    "title": "Noah's Ark: 100% Unconfirmed",
+    "topics": [
+     "creation",
+     "apol",
+     "hb"
+    ]
+   },
+   {
+    "number": 184,
+    "date": "Oct 12, 2026",
+    "title": "Hexegesis and Sexist Jesus?",
+    "topics": [
+     "sex",
+     "jesus"
+    ]
+   },
+   {
+    "number": 185,
+    "date": "Oct 19, 2026",
+    "title": "How Lady Wisdom Became Flesh with Dustin Smith",
+    "topics": [
+     "jesus",
+     "god",
+     "hb",
+     "guest"
+    ]
+   },
+   {
+    "number": 186,
+    "date": "Oct 26, 2026",
+    "title": "You Can't Out-Bible the Pope",
+    "topics": [
+     "politics",
+     "faith"
+    ]
+   },
+   {
+    "number": 187,
+    "date": "Nov 02, 2026",
+    "title": "No One Can See God and Live… Except These 74 Guys",
+    "topics": [
+     "god",
+     "hb"
+    ]
+   }
+  ]
+ }
+}

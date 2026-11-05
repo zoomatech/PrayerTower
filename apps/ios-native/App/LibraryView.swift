@@ -32,8 +32,29 @@ struct LibraryView: View {
     @State private var preparing: String?
     private var w: Words { model.words }
     private var bibleOffered: Bool { overview?.collections.contains { $0.id == Library.bible } ?? false }
+    @Environment(\.horizontalSizeClass) private var width
+    /// The research desk (news, scholar feeds, the McClellan index) goes beside the Bible search: to its right on a wide
+    /// screen, after it on a phone.
+    private var deskShown: Bool { overview?.enabled == true && bibleOffered }
 
     var body: some View {
+        HStack(spacing: 0) {
+            search
+            if deskShown, width == .regular {
+                Divider()
+                ResearchDeskView().frame(minWidth: 320, idealWidth: 400, maxWidth: 440)
+            }
+        }
+        .navigationTitle(w("library.title"))
+        .sheet(item: $sharing) { ComposeView(start: $0.post) }
+        .task {
+            await load()
+            try? await marks.load(model)
+        }
+        .refreshable { await load() }
+    }
+
+    private var search: some View {
         List {
             if let error { Section { Text(error).foregroundStyle(Color.danger) } }
             if model.features["libraryOffline"] {
@@ -133,14 +154,8 @@ struct LibraryView: View {
                     if !hits.isEmpty { Text(w("library.source", ["source": source])) }
                 }
             }
+            if deskShown, width != .regular { ResearchDeskSections() }
         }
-        .navigationTitle(w("library.title"))
-        .sheet(item: $sharing) { ComposeView(start: $0.post) }
-        .task {
-            await load()
-            try? await marks.load(model)
-        }
-        .refreshable { await load() }
     }
 
     @ViewBuilder private func passage(_ h: LibraryHit) -> some View {
