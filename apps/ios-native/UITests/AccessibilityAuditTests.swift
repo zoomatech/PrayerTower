@@ -96,14 +96,18 @@ final class AccessibilityAuditTests: XCTestCase {
         }
     }
 
-    /// Waits until the feed has come to rest: the same words in the same place twice running.
+    /// Waits until the feed has come to rest: the same picture on screen, and every word the screen
+    /// reader knows in the same place, twice running. Words alone weren't enough: the Prayer Tower,
+    /// scrolled to the end, was once audited while the words' known places still trailed the drawn
+    /// ones, so the audit measured bare stone where it was told a name was.
     @MainActor func settle(_ app: XCUIApplication) {
-        var last = CGRect.null
-        for _ in 0..<10 {
+        var last: (Data, [CGRect])? = nil
+        for _ in 0..<8 {
             sleep(1)
-            let now = app.staticTexts.allElementsBoundByIndex.prefix(8).reduce(CGRect.null) { $0.union($1.frame) }
-            if now == last { break }
-            last = now
+            let picture = XCUIScreen.main.screenshot().pngRepresentation
+            let places = app.staticTexts.allElementsBoundByIndex.map(\.frame)
+            if let last, last.0 == picture, last.1 == places { break }
+            last = (picture, places)
         }
         // Then the time a post takes to grow in once it comes into view, so none is caught mid-fade.
         sleep(3)
@@ -135,20 +139,30 @@ final class AccessibilityAuditTests: XCTestCase {
     @MainActor private func runAudit(_ app: XCUIApplication, _ place: String, in visible: CGRect) throws {
         // The screen as it was before the audit, to say what colors a contrast failure sat on.
         let shot = XCUIScreen.main.screenshot().image.cgImage
+        // Diagnostic: where the screen reader thinks each word is, to set beside the picture's colors.
+        for t in app.staticTexts.allElementsBoundByIndex.prefix(14) {
+            print("FRAMES \(place) '\(t.label.prefix(30))' at \(t.frame) hittable \(t.isHittable)")
+        }
         let width = app.windows.firstMatch.frame.width
-        try app.performAccessibilityAudit { issue in
-            if issue.auditType == .contrast, let frame = issue.element?.frame, let shot {
-                print("PIXELS \(place) '\(issue.element?.label ?? "")': \(Self.colors(in: frame, of: shot, scale: CGFloat(shot.width) / width))")
+        // Contrast on its own, before the rest: within one audit the Dynamic Type check enlarges the
+        // text and moves the words, and the contrast check was then measured at the moved places on
+        // the unmoved picture (Blossom Garden's 'Riley': on screen at y 360, reported at y 409, over
+        // bare card), so it read the card's colors and no text.
+        for types in [XCUIAccessibilityAuditType.contrast, .all.subtracting(.contrast)] {
+            try app.performAccessibilityAudit(for: types) { issue in
+                if issue.auditType == .contrast, let frame = issue.element?.frame, let shot {
+                    print("PIXELS \(place) '\(issue.element?.label ?? "")': \(Self.colors(in: frame, of: shot, scale: CGFloat(shot.width) / width))")
+                }
+                let element = issue.element
+                // An element with no place on screen (an infinite or empty frame) can't be measured there.
+                if let frame = element?.frame, !frame.origin.x.isFinite || !frame.origin.y.isFinite || frame.isEmpty || !visible.contains(frame) { return true }
+                // Advisory only, as in UIWalks/MainScreensWalk.swift: the text does grow, just not by the
+                // audit's full step (a system row button, e.g. sign-in's "Forgot your password?").
+                if issue.compactDescription.contains("partially unsupported") { return true }
+                let what = element.map { "\($0.elementType.rawValue) '\($0.label)' id '\($0.identifier)' at \($0.frame)" } ?? "no element"
+                XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
+                return true
             }
-            let element = issue.element
-            // An element with no place on screen (an infinite or empty frame) can't be measured there.
-            if let frame = element?.frame, !frame.origin.x.isFinite || !frame.origin.y.isFinite || frame.isEmpty || !visible.contains(frame) { return true }
-            // Advisory only, as in UIWalks/MainScreensWalk.swift: the text does grow, just not by the
-            // audit's full step (a system row button, e.g. sign-in's "Forgot your password?").
-            if issue.compactDescription.contains("partially unsupported") { return true }
-            let what = element.map { "\($0.elementType.rawValue) '\($0.label)' id '\($0.identifier)' at \($0.frame)" } ?? "no element"
-            XCTFail("\(place): \(issue.compactDescription) on \(what). \(issue.detailedDescription)")
-            return true
         }
     }
 
