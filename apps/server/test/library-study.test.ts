@@ -164,6 +164,22 @@ describe('offline texts', () => {
     expect((await as(member).get('/library/offline/nothing')).statusCode).toBe(400);
   });
 
+  it('sends a collection for the meaning search on the device whenever text search is on, offline texts on or off', async () => {
+    const member = await createUser('Story Searcher');
+    await switches(false);
+    expect((await as(member).get('/library/texts/oldest-texts')).statusCode).toBe(403);
+    await db.query('update public.library_settings set enabled = true');
+    const r = await as(member).get('/library/texts/oldest-texts');
+    expect(r.statusCode).toBe(200);
+    expect(r.headers['content-encoding']).toBe('gzip');
+    expect(JSON.parse(gunzipSync(r.rawPayload).toString('utf8')).passages.length).toBeGreaterThan(1000);
+    expect((await as(member).get('/library/texts/nothing')).statusCode).toBe(400);
+    await inOpenCircle(member, async (c) => {
+      await expect(offline.forSearch(c, member, 'apocrypha-kjv')).rejects.toThrow(/not offered/);
+      expect((await offline.forSearch(c, member, 'world-classics')).bytes.length).toBeGreaterThan(0);
+    });
+  });
+
   it('never offers the Bible offline in Open Circle', async () => {
     const member = await createUser('Offline Secular');
     await switches(true);

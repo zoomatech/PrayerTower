@@ -189,21 +189,92 @@ public actor FuzzyBibleSearch {
             }
             let groups = PassageGroups.groups(BibleText.verses(csv: try String(contentsOf: text, encoding: .utf8)))
             guard !groups.isEmpty else { throw SetupError.noVerses(translation.rawValue) }
-            // Longest first, so that each batch holds texts of about one length.
-            let order = groups.indices.sorted { groups[$0].text.count > groups[$1].text.count }
-            var vectors = [[Float]](repeating: [], count: groups.count)
-            for start in Swift.stride(from: 0, to: order.count, by: Self.batch) {
-                let some = Array(order[start..<min(start + Self.batch, order.count)])
-                for (i, vector) in zip(some, try embedder.documents(some.map { groups[$0].text })) { vectors[i] = vector }
-                set(.preparing("Indexing \(translation.rawValue): \(min(start + Self.batch, order.count)) of \(groups.count) groups"), report)
-                await Task.yield()
-            }
+            let vectors = try await embed(groups, by: embedder, as: translation.rawValue, report: report)
             let index = PassageIndex(translation: translation, groups: groups, vectors: vectors)
             try index.save(in: indexFolder, model: model.key)
             made.append(index)
         }
         self.embedder = embedder
+        self.model = model
         indexes = made
+    }
+
+    /// Each group's vector, in the groups' order, reporting "Indexing KJV: 1200 of 9586 groups".
+    private func embed(_ groups: [PassageGroup], by embedder: any PassageEmbedder, as name: String,
+                       report: @escaping @Sendable (State) -> Void) async throws -> [[Float]] {
+        // Longest first, so that each batch holds texts of about one length.
+        let order = groups.indices.sorted { groups[$0].text.count > groups[$1].text.count }
+        var vectors = [[Float]](repeating: [], count: groups.count)
+        for start in Swift.stride(from: 0, to: order.count, by: Self.batch) {
+            let some = Array(order[start..<min(start + Self.batch, order.count)])
+            for (i, vector) in zip(some, try embedder.documents(some.map { groups[$0].text })) { vectors[i] = vector }
+            set(.preparing("Indexing \(name): \(min(start + Self.batch, order.count)) of \(groups.count) groups"), report)
+            await Task.yield()
+        }
+        return vectors
+    }
+
+    // MARK: The library's other collections
+
+    /// The model the setup chose.
+    private var model: EmbeddingModel?
+    /// Each collection's slices (`TextGroups`) and their cascade, made the first time it is searched.
+    private var texts: [String: (version: String, groups: [PassageGroup], cascade: CascadeIndex)] = [:]
+    /// Each collection's meaning index, once the setup is done: loaded if it was made before from the same words, else
+    /// made once and kept beside the Bible's.
+    private var textIndexes: [String: PassageIndex] = [:]
+    /// The collections being indexed now, so that a second search doesn't index one again.
+    private var indexing: Set<String> = []
+
+    /// The collection's slices, made once for its version.
+    private func slices(_ collection: TextCollection) -> (version: String, groups: [PassageGroup], cascade: CascadeIndex) {
+        if let made = texts[collection.id], made.version == collection.version { return made }
+        let groups = TextGroups.groups(collection.passages)
+        let made = (collection.version, groups, CascadeIndex(groups.map(\.text)))
+        texts[collection.id] = made
+        textIndexes[collection.id] = nil
+        return made
+    }
+
+    /// The collection's meaning index, made with the model the setup chose: nothing until the setup is done. Loaded if it
+    /// was made before from the same words, else made now, once, and kept.
+    public func prepare(_ collection: TextCollection, report: @escaping @Sendable (State) -> Void = { _ in }) async throws {
+        let (version, groups, _) = slices(collection)
+        guard let embedder, let model, !groups.isEmpty, textIndexes[collection.id]?.version != version,
+              !indexing.contains(collection.id) else { return }
+        indexing.insert(collection.id)
+        defer { indexing.remove(collection.id) }
+        let indexFolder = folder.appending(path: "index").appending(path: model.key)
+        if let kept = PassageIndex.load(collection.id, version: version, from: indexFolder, model: model.key) {
+            textIndexes[collection.id] = kept
+            return
+        }
+        // Ready again afterwards, indexed or not: the Bible's search is unchanged either way.
+        defer { set(.ready(model.repository), report) }
+        let vectors = try await embed(groups, by: embedder, as: collection.title, report: report)
+        let index = PassageIndex(name: collection.id, version: version, groups: groups, vectors: vectors)
+        try index.save(in: indexFolder, model: model.key)
+        textIndexes[collection.id] = index
+    }
+
+    /// Whether the collection's meaning index is ready.
+    public func isReady(_ collection: TextCollection) -> Bool {
+        textIndexes[collection.id]?.version == collection.version
+    }
+
+    /// The collection's slices nearest the phrase, as typed, by meaning; none until its index is ready.
+    public func search(_ phrase: String, in collection: TextCollection, count: Int = 5) throws -> [PassageMatch] {
+        guard let embedder, let index = textIndexes[collection.id], index.version == collection.version, !phrase.isEmpty else { return [] }
+        return PassageSearch.nearest(try embedder.query(phrase), in: [index], count: count)
+    }
+
+    /// The collection's slices the cascade text search ranks highest; it needs no model, so it answers from the first
+    /// search.
+    public func cascadeSearch(_ phrase: String, in collection: TextCollection, count: Int = 5) -> [PassageMatch] {
+        guard !phrase.isEmpty else { return [] }
+        let (version, groups, cascade) = slices(collection)
+        let index = PassageIndex(name: collection.id, version: version, groups: groups, dimensions: 0, vectors: [])
+        return PassageSearch.cascade(phrase, in: [(index, cascade)], count: count)
     }
 
     /// The header its downloads carry.

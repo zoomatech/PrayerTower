@@ -394,6 +394,7 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     whoScope: "How close",
     whoParseError: "Enter a name and what they did, with an optional person or place.",
     storyHint: "Describe it in your own words: the guy who built the ark.",
+    storyHintTexts: "Describe it in your own words: the bird that came back because it found nowhere to land.",
     preparing: "Getting the meaning search ready on this device, once only: %{step}. Until then the word search answers.",
     unavailable: "This search needs an iPhone.",
   },

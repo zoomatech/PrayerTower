@@ -42,14 +42,20 @@ public final class VerseLibrary: @unchecked Sendable {
     }
     public static func loadBundled() throws -> VerseLibrary { try bundled.get() }
 
-    public init(data: Data) throws {
+    public convenience init(data: Data) throws {
         let archive = try JSONDecoder().decode(Archive.self, from: data)
         guard archive.format_version == 1, !archive.verses.isEmpty,
               Set(archive.verses.map(\.id)).count == archive.verses.count,
               archive.verses.allSatisfy({ !$0.book.isEmpty && $0.chapter > 0 && $0.verse > 0 && !$0.text.isEmpty }) else { throw ReadError.invalidIndex }
-        verses = archive.verses
-        words = archive.verses.map { Set(ScriptureWords.words($0.text)) }
-        stems = archive.verses.map { ScriptureWords.words($0.text).map(PassageWords.stem) }
+        self.init(verses: archive.verses)
+    }
+
+    /// Any passages, for the passage word search: a collection's, each its work as the book and its place in the
+    /// collection as the verse (`HybridTextSearch`), so that a passage's neighbours are those beside it in its work.
+    public init(verses: [ScriptureVerse]) {
+        self.verses = verses
+        words = verses.map { Set(ScriptureWords.words($0.text)) }
+        stems = verses.map { ScriptureWords.words($0.text).map(PassageWords.stem) }
         verseCount = stems.reduce(into: [:]) { counts, verse in for form in Set(verse) { counts[form, default: 0] += 1 } }
     }
 }

@@ -42,3 +42,12 @@ export async function download(q: Queryable, userId: string, id: CollectionId) {
   if (!ids.includes(id)) throw forbidden('This collection is not offered in your community');
   return file(id);
 }
+
+/** The same file for the native app's meaning search ("A story I remember"), which slices the collection on the
+ *  device: offered wherever the collection is searched, offline texts on or off. */
+export async function forSearch(q: Queryable, userId: string, id: CollectionId) {
+  const ids = await offered(q, userId);
+  if (!ids) throw forbidden('Text search is off');
+  if (!ids.includes(id)) throw forbidden('This collection is not offered in your community');
+  return file(id);
+}

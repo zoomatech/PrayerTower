@@ -254,8 +254,12 @@ extension APIClient {
     }
     public func offlineCollections() async throws -> OfflineCollections { try await get("/library/offline") }
     /// The collection's file. URLSession unzips it (it comes with Content-Encoding: gzip).
-    public func downloadCollection(_ id: String) async throws -> Data {
-        var r = try await request("GET", "/library/offline/\(id)")
+    public func downloadCollection(_ id: String) async throws -> Data { try await collectionFile("/library/offline/\(id)") }
+    /// The same file for the meaning search on the device ("A story I remember"), whether or not offline texts are on.
+    public func searchableCollection(_ id: String) async throws -> Data { try await collectionFile("/library/texts/\(id)") }
+
+    private func collectionFile(_ path: String) async throws -> Data {
+        var r = try await request("GET", path)
         r.timeoutInterval = 120
         let (data, response): (Data, URLResponse)
         do {

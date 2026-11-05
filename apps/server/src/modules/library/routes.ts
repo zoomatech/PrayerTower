@@ -74,4 +74,10 @@ export function libraryRoutes(app: FastifyInstance, db: Db) {
     // The file is already gzipped JSON: sent as is, and the client unzips it.
     return reply.header('content-type', 'application/json').header('content-encoding', 'gzip').header('etag', `"${f.version}"`).send(f.bytes);
   });
+  // The same file for the native app's meaning search over a collection.
+  app.get('/library/texts/:id', async (req, reply) => {
+    const id = z.object({ id: z.enum(library.COLLECTIONS) }).parse(req.params).id;
+    const f = await offline.forSearch(db, requireUser(req), id);
+    return reply.header('content-type', 'application/json').header('content-encoding', 'gzip').header('etag', `"${f.version}"`).send(f.bytes);
+  });
 }

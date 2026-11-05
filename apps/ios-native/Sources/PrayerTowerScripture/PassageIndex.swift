@@ -6,9 +6,14 @@ import Foundation
 // Ported from Winstons Syndicate (Packages/ZoomaBibleSearch/Sources/ZoomaBiblePassages/PassageIndex.swift). The same
 // files, 16-bit floats and scores; Accelerate on Apple platforms, a plain loop where it is missing (Linux, for tests).
 
-/// One translation's groups with a vector for each, made once at setup and kept on the device.
+/// One translation's groups with a vector for each, made once at setup and kept on the device; or one of the library's
+/// other collections' (`TextGroups`), named by its id.
 public struct PassageIndex: Sendable {
-    public let translation: BibleTranslation
+    /// The translation's code ("KJV"), or the collection's id.
+    public let name: String
+    public var translation: BibleTranslation? { BibleTranslation(rawValue: name) }
+    /// What the groups were cut from (`TextCollection.version`); nil for a translation.
+    public let version: String?
     public let groups: [PassageGroup]
     public let dimensions: Int
     /// Unit-length vectors, one after another, `dimensions` numbers each, in the groups' order, as 16-bit floats
@@ -16,8 +21,13 @@ public struct PassageIndex: Sendable {
     let vectors: [UInt16]
 
     public init(translation: BibleTranslation, groups: [PassageGroup], vectors: [[Float]]) {
+        self.init(name: translation.rawValue, version: nil, groups: groups, vectors: vectors)
+    }
+
+    public init(name: String, version: String?, groups: [PassageGroup], vectors: [[Float]]) {
         precondition(groups.count == vectors.count && !vectors.isEmpty)
-        self.translation = translation
+        self.name = name
+        self.version = version
         self.groups = groups
         dimensions = vectors[0].count
         let whole = vectors.flatMap(PassageIndex.unit)
@@ -41,8 +51,9 @@ public struct PassageIndex: Sendable {
         #endif
     }
 
-    init(translation: BibleTranslation, groups: [PassageGroup], dimensions: Int, vectors: [UInt16]) {
-        self.translation = translation
+    init(name: String, version: String?, groups: [PassageGroup], dimensions: Int, vectors: [UInt16]) {
+        self.name = name
+        self.version = version
         self.groups = groups
         self.dimensions = dimensions
         self.vectors = vectors
@@ -56,36 +67,43 @@ public struct PassageIndex: Sendable {
 
     // MARK: Kept on the device
 
+    /// `translation` holds the name, as it always has, so that an index kept before collections were indexed still reads.
     struct Contents: Codable {
         let model: String
-        let translation: BibleTranslation
+        let translation: String
+        var version: String?
         let dimensions: Int
         let groups: [PassageGroup]
     }
 
-    static func files(_ translation: BibleTranslation, in folder: URL) -> (groups: URL, vectors: URL) {
-        (folder.appendingPathComponent("\(translation.rawValue).groups.json"), folder.appendingPathComponent("\(translation.rawValue).vectors"))
+    static func files(_ name: String, in folder: URL) -> (groups: URL, vectors: URL) {
+        (folder.appendingPathComponent("\(name).groups.json"), folder.appendingPathComponent("\(name).vectors"))
     }
 
     /// Writes the groups, then the vectors; an index is whole only when both are there and agree.
     public func save(in folder: URL, model: String) throws {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let (groupsFile, vectorsFile) = Self.files(translation, in: folder)
-        try JSONEncoder().encode(Contents(model: model, translation: translation, dimensions: dimensions, groups: groups))
+        let (groupsFile, vectorsFile) = Self.files(name, in: folder)
+        try JSONEncoder().encode(Contents(model: model, translation: name, version: version, dimensions: dimensions, groups: groups))
             .write(to: groupsFile, options: .atomic)
         try vectors.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: vectorsFile, options: .atomic)
     }
 
     /// The translation's index in the folder, if it is whole and was made by the model named.
     public static func load(_ translation: BibleTranslation, from folder: URL, model: String) -> PassageIndex? {
-        let (groupsFile, vectorsFile) = files(translation, in: folder)
+        load(translation.rawValue, version: nil, from: folder, model: model)
+    }
+
+    /// The named index in the folder, if it is whole, was made by the model named and from the version given.
+    public static func load(_ name: String, version: String?, from folder: URL, model: String) -> PassageIndex? {
+        let (groupsFile, vectorsFile) = files(name, in: folder)
         guard let data = try? Data(contentsOf: groupsFile),
               let contents = try? JSONDecoder().decode(Contents.self, from: data),
-              contents.model == model, contents.translation == translation, contents.dimensions > 0,
+              contents.model == model, contents.translation == name, contents.version == version, contents.dimensions > 0,
               let raw = try? Data(contentsOf: vectorsFile),
               raw.count == contents.groups.count * contents.dimensions * MemoryLayout<UInt16>.size else { return nil }
         let vectors = raw.withUnsafeBytes { Array($0.bindMemory(to: UInt16.self)) }
-        return PassageIndex(translation: translation, groups: contents.groups, dimensions: contents.dimensions, vectors: vectors)
+        return PassageIndex(name: name, version: version, groups: contents.groups, dimensions: contents.dimensions, vectors: vectors)
     }
 
     // MARK: Search
@@ -126,7 +144,9 @@ public struct PassageIndex: Sendable {
 /// A group found for a phrase: its reference, the translation whose words came nearest, and how near.
 public struct PassageMatch: Equatable, Sendable {
     public let group: PassageGroup
-    public let translation: BibleTranslation
+    /// The index's name: the translation's code, or the collection's id.
+    public let name: String
+    public var translation: BibleTranslation? { BibleTranslation(rawValue: name) }
     public let score: Float
     public var reference: String { group.reference }
 }
@@ -142,7 +162,7 @@ public enum PassageSearch {
             for (i, score) in index.scores(unit).enumerated() {
                 let group = index.groups[i]
                 if let held = best[group.reference], held.score >= score { continue }
-                best[group.reference] = PassageMatch(group: group, translation: index.translation, score: score)
+                best[group.reference] = PassageMatch(group: group, name: index.name, score: score)
             }
         }
         return Array(best.values.sorted { $0.score != $1.score ? $0.score > $1.score : $0.reference < $1.reference }.prefix(count))
@@ -157,7 +177,7 @@ public enum PassageSearch {
             for (i, score) in cascade.scores(question).enumerated() where score > 0 && i < index.groups.count {
                 let group = index.groups[i]
                 if let held = best[group.reference], held.match.score >= score { continue }
-                best[group.reference] = (PassageMatch(group: group, translation: index.translation, score: score), i)
+                best[group.reference] = (PassageMatch(group: group, name: index.name, score: score), i)
             }
         }
         return Array(best.values.sorted { $0.match.score != $1.match.score ? $0.match.score > $1.match.score : $0.order < $1.order }
@@ -179,7 +199,7 @@ public enum PassageSearch {
                 let score = meaning * near[i] + (1 - meaning) * words[i]
                 let group = index.groups[i]
                 if let held = best[group.reference], held.match.score >= score { continue }
-                best[group.reference] = (PassageMatch(group: group, translation: index.translation, score: score), i)
+                best[group.reference] = (PassageMatch(group: group, name: index.name, score: score), i)
             }
         }
         return Array(best.values.sorted { $0.match.score != $1.match.score ? $0.match.score > $1.match.score : $0.order < $1.order }

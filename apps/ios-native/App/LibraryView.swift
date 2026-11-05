@@ -4,8 +4,8 @@ import SwiftUI
 
 /// Scripture and ancient writings search, as the Expo app's library.tsx. Off unless an admin
 /// turns it on; the server decides which collections this member's community offers.
-/// Where the Bible is offered, two more searches run on the phone, ported from Winstons Syndicate
-/// (PrayerTowerScripture): "Who did what" (relationship search) and "A story I remember" (fuzzy search).
+/// Two more searches run on the phone, ported from Winstons Syndicate (PrayerTowerScripture): "Who did what"
+/// (relationship search) where the Bible is offered, and "A story I remember" (the hybrid search) over every collection.
 struct LibraryView: View {
     enum Mode: Hashable { case words, who, story }
     @Environment(AppModel.self) private var model
@@ -25,7 +25,7 @@ struct LibraryView: View {
     @State private var mode = Mode.words
     @State private var scope = VerseSearchScope.automatic
     @State private var verseHits: [VerseSearchHit]?
-    @State private var stories: [HybridBibleSearch.Found]?
+    @State private var stories: [StoryFound]?
     /// What the meaning search's setup is doing, the first time only: "Downloading BSB", "Indexing KJV: 1200 of 9586 groups".
     @State private var preparing: String?
     private var w: Words { model.words }
@@ -44,10 +44,10 @@ struct LibraryView: View {
                 if !overview.enabled {
                     Text(w("library.closed"))
                 } else {
-                    if bibleOffered {
+                    if !overview.collections.isEmpty {
                         Picker("", selection: $mode) {
                             Text(w("library.modeWords")).tag(Mode.words)
-                            Text(w("library.modeWho")).tag(Mode.who)
+                            if bibleOffered { Text(w("library.modeWho")).tag(Mode.who) }
                             Text(w("library.modeStory")).tag(Mode.story)
                         }
                         .pickerStyle(.segmented)
@@ -60,8 +60,10 @@ struct LibraryView: View {
                                 ForEach(VerseSearchScope.allCases, id: \.self) { Text($0.title).tag($0) }
                             }
                         }
-                        if mode == .story { Text(w("library.storyHint")).font(.footnote).foregroundStyle(Color.subtle) }
-                        if mode == .words, overview.collections.count > 1 {
+                        if mode == .story {
+                            Text(w(collection == Library.bible ? "library.storyHint" : "library.storyHintTexts")).font(.footnote).foregroundStyle(Color.subtle)
+                        }
+                        if mode != .who, overview.collections.count > 1 {
                             Picker(w("library.title"), selection: Binding(get: { collection ?? "" }, set: { choose($0) })) {
                                 ForEach(overview.collections) { Text($0.title).tag($0.id) }
                             }
@@ -96,10 +98,11 @@ struct LibraryView: View {
             }
             if mode == .story, let stories {
                 Section {
-                    ForEach(stories, id: \.verse.id) { found in
+                    ForEach(stories) { found in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(found.verse.id).font(.headline)
-                            Text(found.verse.text).textSelection(.enabled)
+                            Text(found.title).font(.headline)
+                            if let place = found.place { Text(place).font(.caption).foregroundStyle(Color.subtle) }
+                            Text(found.text).textSelection(.enabled)
                             Text(found.explanation).font(.caption).foregroundStyle(Color.subtle)
                         }
                         .accessibilityElement(children: .combine)
@@ -203,21 +206,26 @@ struct LibraryView: View {
     }
 
     /// "A story I remember", on the device: Winstons Syndicate's hybrid Bible search (meaning, cascade and word search
-    /// taking turns). The meaning search's setup runs in the background the first time; until it is done the word
-    /// search answers alone, as in Winstons Syndicate.
+    /// taking turns), over the Bible or the collection chosen, sliced as the Bible is. The meaning search's setup runs
+    /// in the background the first time; until it is done the word search answers alone for the Bible, the cascade
+    /// and the word search for the other collections.
     private func story() {
         let phrase = words.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !phrase.isEmpty else { return }
+        guard !phrase.isEmpty, let from = collection ?? (bibleOffered ? Library.bible : nil) else { return }
         busy = true
         error = nil
+        let api = model.store.api
         Task {
             defer { busy = false }
             do {
-                stories = try await LibraryScripture.shared.search(phrase) { state in
+                let report: @Sendable (FuzzyBibleSearch.State) -> Void = { state in
                     Task { @MainActor in
                         if case let .preparing(step) = state { preparing = step } else { preparing = nil }
                     }
                 }
+                stories = from == Library.bible
+                    ? try await LibraryScripture.shared.search(phrase, report: report).map(StoryFound.init)
+                    : try await LibraryScripture.shared.search(phrase, in: from, api: api, report: report)
             } catch {
                 self.error = error.localizedDescription
             }
@@ -227,7 +235,8 @@ struct LibraryView: View {
     private func choose(_ id: String) {
         collection = id
         hits = nil
-        if !searched.isEmpty { run(0, searched) }
+        stories = nil
+        if mode == .words, !searched.isEmpty { run(0, searched) }
     }
 
     private func run(_ offset: Int, _ q: String? = nil) {
@@ -401,7 +410,8 @@ enum LibraryScripture {
 
     actor Holder {
         private var hybrid: HybridBibleSearch?
-        private var started = false
+        /// The meaning search's setup, started by the first search.
+        private var setup: Task<Void, Never>?
 
         func search(_ phrase: String, report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> [HybridBibleSearch.Found] {
             if hybrid == nil {
@@ -412,13 +422,75 @@ enum LibraryScripture {
                 hybrid = HybridBibleSearch(library: try VerseLibrary.loadBundled(), fuzzy: fuzzy)
             }
             let hybrid = hybrid!
-            if !started {
-                started = true
-                Task.detached(priority: .utility) { await hybrid.fuzzy.prepare(report: report) }
+            if setup == nil {
+                setup = Task.detached(priority: .utility) { await hybrid.fuzzy.prepare(report: report) }
             } else if case let .preparing(step) = await hybrid.fuzzy.state {
                 report(.preparing(step))
             }
             return await hybrid.search(phrase)
         }
+
+        /// Each collection's hybrid search and its file, for citations; fetched the first time it is searched.
+        private var texts: [String: (search: HybridTextSearch, file: OfflineCollectionFile)] = [:]
+
+        /// "A story I remember" over one of the other collections: the same meaning model and setup as the Bible's;
+        /// the collection is sliced and its meaning index made once, in the background, after the Bible's.
+        func search(_ phrase: String, in id: String, api: APIClient,
+                    report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> [StoryFound] {
+            _ = try await search("", report: report)
+            let hybrid = hybrid!
+            if texts[id] == nil {
+                let data: Data
+                do {
+                    data = try await api.searchableCollection(id)
+                } catch let e as OfflineError {
+                    // No signal: a downloaded copy will do.
+                    guard let kept = try? Data(contentsOf: OfflineLibrary().folder.appendingPathComponent("\(id).json")) else { throw e }
+                    data = kept
+                }
+                texts[id] = (HybridTextSearch(collection: try TextCollection(data: data), fuzzy: hybrid.fuzzy),
+                             try JSONDecoder().decode(OfflineCollectionFile.self, from: data))
+            }
+            let (search, file) = texts[id]!
+            if await !search.fuzzy.isReady(search.collection) {
+                let setup = setup
+                Task.detached(priority: .utility) {
+                    // After the Bible's setup, which chooses the model; a second call while it runs does nothing.
+                    await setup?.value
+                    try? await search.fuzzy.prepare(search.collection, report: report)
+                }
+            } else if case let .preparing(step) = await search.fuzzy.state {
+                report(.preparing(step))
+            }
+            let works = Dictionary(file.works.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            return await search.search(phrase).map { found in
+                let work = works[found.passage.workId]
+                let title = work?.title ?? found.passage.workId
+                let place = found.passage.ref.isEmpty || found.passage.ref == title ? nil : found.passage.ref
+                return StoryFound(id: "\(id) \(found.index)", title: title, place: place, text: found.passage.text,
+                                  explanation: found.explanation)
+            }
+        }
+    }
+}
+
+/// A passage "A story I remember" found: a Bible verse, or a passage of another collection with its work and place.
+struct StoryFound: Identifiable, Sendable {
+    let id: String
+    let title: String
+    let place: String?
+    let text: String
+    let explanation: String
+
+    init(id: String, title: String, place: String?, text: String, explanation: String) {
+        self.id = id
+        self.title = title
+        self.place = place
+        self.text = text
+        self.explanation = explanation
+    }
+
+    init(_ found: HybridBibleSearch.Found) {
+        self.init(id: found.verse.id, title: found.verse.id, place: nil, text: found.verse.text, explanation: found.explanation)
     }
 }
