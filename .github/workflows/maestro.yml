@@ -147,6 +147,12 @@ jobs:
             python3 -c 'import json,sys; [print(json.dumps(c.get("command"))[:300], "->", (c.get("metadata") or {}).get("status"), ((c.get("metadata") or {}).get("error") or {}).get("message","")) for c in json.load(open(sys.argv[1]))]' "$f" | tail -8
           done
           find maestro-output -name 'maestro.log' -exec tail -40 {} \; 2>/dev/null | grep -iE 'error|fail|exception' | head -30 || true
+          # A crash: React Native logs the JavaScript error before it aborts, and iOS keeps a crash report.
+          xcrun simctl spawn booted log show --last 15m --style compact --predicate 'process == "PrayerTower"' 2>/dev/null \
+            | grep -iE 'unhandled|exception|fatal|error|abort|invariant' | grep -v 'nw_' | sort -u | head -60 || true
+          for r in $(ls -t ~/Library/Logs/DiagnosticReports/PrayerTower*.ips 2>/dev/null | head -1); do
+            echo "== $r"; python3 -c 'import json,sys; t=open(sys.argv[1]).read().split("\n",1)[1]; j=json.loads(t); print(json.dumps(j.get("exception")), json.dumps(j.get("asi"))[:2000]); fr=j["threads"][j.get("faultingThread",0)]["frames"][:25]; imgs=j.get("usedImages",[]); [print(imgs[x["imageIndex"]].get("name","?"), x.get("symbol","")) for x in fr]' "$r" || head -c 4000 "$r"
+          done
       - if: always()
         uses: actions/upload-artifact@v4
         with:
