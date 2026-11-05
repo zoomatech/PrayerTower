@@ -188,11 +188,6 @@ function saveOrder(viewerId: string, ids: string[], pinnedId: string | null, now
   while (savedOrders.size > SAVED_ORDER_VIEWERS) savedOrders.delete(savedOrders.keys().next().value!);
 }
 
-/** For tests: forget every saved order. */
-export function forgetSavedOrders() {
-  savedOrders.clear();
-}
-
 export interface FeedTheme {
   slug: string;
   name: string;
