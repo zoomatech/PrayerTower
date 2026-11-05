@@ -67,7 +67,10 @@ export function CornerNav() {
         <MenuGlyph />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.scrim} onPress={() => setOpen(false)} aria-label={t('menu.close')}>
+        {/* The scrim sits behind the sheet, not around it: a labelled button around the items
+            makes iOS read the whole menu as one button, so VoiceOver can't reach an item. */}
+        <View style={styles.scrim}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpen(false)} aria-label={t('menu.close')} />
           <View style={[styles.sheet, { top: insets.top + space.sm + SIZE * 2 + space.xs }]} role="menu">
             {items.map((item) => (
               <Pressable key={item.label} style={styles.item} onPress={() => go(item.href)} role="menuitem">
@@ -75,7 +78,7 @@ export function CornerNav() {
               </Pressable>
             ))}
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );

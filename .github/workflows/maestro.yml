@@ -129,9 +129,48 @@ jobs:
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      # The first start of Maestro's iOS driver on a fresh runner took over the default 2 minutes.
       - name: Run the flows
         working-directory: apps/mobile
-        run: maestro test .maestro/ --format=JUNIT --output=maestro-report.xml --test-output-dir=maestro-output
+        env:
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: 600000
+          MAESTRO_CLI_NO_ANALYTICS: 1
+        # Maestro's iOS driver on these runners sometimes drops ("Device became unreachable") or
+        # doesn't start, so each flow runs on its own and gets up to three tries.
+        run: |
+          failed=""
+          for f in .maestro/0*.yaml; do
+            n=$(basename "$f" .yaml)
+            ok=""
+            for try in 1 2 3; do
+              maestro test "$f" --format=JUNIT --output="maestro-$n.xml" --test-output-dir="maestro-output/$n-$try" && { ok=1; break; }
+              echo "$n failed on try $try"
+            done
+            [ -n "$ok" ] || failed="$failed $n"
+          done
+          python3 -c 'import sys,glob; parts=[open(x).read().split("<testsuites>",1)[1].rsplit("</testsuites>",1)[0] for x in sorted(glob.glob("maestro-0*.xml"))]; open("maestro-report.xml","w").write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>"+"".join(parts)+"</testsuites>\n")' || true
+          [ -z "$failed" ] || { echo "Failed:$failed"; exit 1; }
+      # Artifacts need a browser sign-in to download, so the reasons go in the log too.
+      - name: Show why flows failed
+        if: failure()
+        working-directory: apps/mobile
+        run: |
+          # One line per flow: name, result and the first line of the reason (stack traces are in the artifact).
+          python3 -c 'import sys,xml.etree.ElementTree as E; [print(c.get("name"), "->", c.get("status"), ((c.find("failure").text or "").splitlines() or [""])[0][:300] if c.find("failure") is not None else "") for c in E.parse(sys.argv[1]).iter("testcase")]' maestro-report.xml 2>/dev/null || true
+          for f in $(find maestro-output ~/.maestro/tests -name 'commands-*.json' 2>/dev/null | head -12); do
+            echo "== $f"
+            python3 -c 'import json,sys; [print(json.dumps(c.get("command"))[:300], "->", (c.get("metadata") or {}).get("status"), ((c.get("metadata") or {}).get("error") or {}).get("message","")) for c in json.load(open(sys.argv[1]))]' "$f" | tail -8
+          done
+          find maestro-output -name 'maestro.log' -exec tail -40 {} \; 2>/dev/null | grep -iE 'error|fail|exception' | head -30 || true
+          # A crash: React Native logs the JavaScript error before it aborts, and iOS keeps a crash report.
+          xcrun simctl spawn booted log show --last 15m --style compact --predicate 'process == "PrayerTower"' 2>/dev/null \
+            | grep -iE 'unhandled|exception|fatal|error|abort|invariant' | grep -vE 'nw_|xctest|XPCErrors' | sort -u | head -40 || true
+          # A menu bar build error names the bad command on the lines before UIKit's breakpoint hint.
+          xcrun simctl spawn booted log show --last 15m --style compact --predicate 'process == "PrayerTower"' 2>/dev/null \
+            | grep -B 6 '_UIMenuBuilderError' | head -40 || true
+          for r in $(ls -t ~/Library/Logs/DiagnosticReports/PrayerTower*.ips 2>/dev/null | head -1); do
+            echo "== $r"; python3 -c 'import json,sys; t=open(sys.argv[1]).read().split("\n",1)[1]; j=json.loads(t); print(json.dumps(j.get("exception")), json.dumps(j.get("asi"))[:2000]); fr=j["threads"][j.get("faultingThread",0)]["frames"][:25]; imgs=j.get("usedImages",[]); [print(imgs[x["imageIndex"]].get("name","?"), x.get("symbol","")) for x in fr]' "$r" || head -c 4000 "$r"
+          done
       - if: always()
         uses: actions/upload-artifact@v4
         with:

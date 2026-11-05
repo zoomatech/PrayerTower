@@ -20,7 +20,8 @@ env:
 - tapOn:
     id: sign-in-password
 - inputText: ${PASSWORD}
-- hideKeyboard
+# No hideKeyboard: on iOS it fails here ("Couldn't hide the keyboard"), and the screen
+# already keeps the button above the keyboard.
 - tapOn:
     id: sign-in-submit
 # First run shows the short tour; skip it when it appears.

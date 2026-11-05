@@ -60,8 +60,13 @@ public class MacMenuModule: Module {
 
   @MainActor static func build(_ builder: UIMenuBuilder) {
     func items(_ menu: String) -> [UIMenuElement] {
-      commands.filter { $0.menu == menu }.map { c in
-        UIKeyCommand(
+      commands.filter { $0.menu == menu }.map { c -> UIMenuElement in
+        // Two key commands with no key count as duplicates and crash the menu build
+        // ("Inserted elements contain duplicates"), so a command without a key is a plain one.
+        if c.key.isEmpty {
+          return UICommand(title: c.title, action: #selector(UIApplication.prayerTowerMenuCommand(_:)), propertyList: c.id)
+        }
+        return UIKeyCommand(
           title: c.title,
           action: #selector(UIApplication.prayerTowerMenuCommand(_:)),
           input: c.key,
@@ -71,6 +76,11 @@ public class MacMenuModule: Module {
       }
     }
     let file = items("file")
+    // Command-N is the system's New Window; a second Command-N is a clash UIKit warns about
+    // ("duplicate modifierFlags: command, input: N"), so ours replaces it.
+    if commands.contains(where: { $0.key.lowercased() == "n" && !$0.shift }) {
+      builder.remove(menu: .newScene)
+    }
     if !file.isEmpty {
       builder.insertChild(UIMenu(title: "", options: .displayInline, children: file), atStartOfMenu: .file)
     }

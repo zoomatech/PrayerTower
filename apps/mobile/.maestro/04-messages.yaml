@@ -13,15 +13,19 @@ env:
       APP_ID: ${APP_ID}
       EMAIL: ${EMAIL}
       PASSWORD: ${PASSWORD}
-- tapOn: Messages
+# Messages is in the menu under the Home button now (Steve, 2026-10-30).
 - tapOn:
-    text: Demo Ethel
+    id: corner-menu
+- tapOn: Messages
+# A conversation row is one button whose label also holds the kind and the last message.
+- tapOn:
+    text: ".*Demo Ethel.*"
     index: 0
 - evalScript: "${output.message = 'Maestro: praying with you (' + Date.now() + ')'}"
 - tapOn:
     id: message-input
 - inputText: ${output.message}
-- hideKeyboard
+# No hideKeyboard: on iOS it fails here, and the send button sits above the keyboard.
 - tapOn:
     id: message-send
 - assertVisible: ${output.message}
