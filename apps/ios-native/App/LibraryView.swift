@@ -226,6 +226,11 @@ struct LibraryView: View {
         guard !phrase.isEmpty, let overview else { return }
         let others = bibleOnly ? [] : overview.collections.map(\.id).filter { $0 != Library.bible }
         let bible = bibleOffered
+        // A popular name typed ("the golden rule") leads straight to its passages, shown first; one typed nearly
+        // ("noahs arks") has its short description searched for with it. The three searches run every time.
+        let named = Array(NamedPassages.named(phrase).prefix(2))
+        let near = named.isEmpty ? NamedPassages.near(phrase) : nil
+        let searched = near.map { phrase + " " + $0.about } ?? phrase
         busy = true
         error = nil
         let api = model.store.api
@@ -237,9 +242,24 @@ struct LibraryView: View {
                         if case let .preparing(step) = state { preparing = step } else { preparing = nil }
                     }
                 }
-                let fromBible = bible ? try await LibraryScripture.shared.search(phrase, report: report).map(StoryFound.init) : []
-                let fromOthers = others.isEmpty ? [] : try await LibraryScripture.shared.search(phrase, in: others, api: api, report: report)
-                var both: [StoryFound] = []
+                // The notes speak of the Bible, so only where it is offered.
+                var first: [StoryFound] = bible ? named.compactMap(StoryFound.note) : []
+                var bibleCovered = Set<String>()
+                if bible {
+                    let kjv = try VerseLibrary.loadBundled()
+                    for entry in named {
+                        for ref in entry.bible {
+                            if let card = StoryFound.bible(ref, of: entry, in: kjv) { first.append(card) }
+                            bibleCovered.formUnion(kjv.verses(ref).map(\.id))
+                        }
+                    }
+                }
+                let fromBible = bible
+                    ? try await LibraryScripture.shared.search(searched, report: report).map(StoryFound.init).filter { !bibleCovered.contains($0.id) }
+                    : []
+                let (namedOthers, fromOthers) = others.isEmpty ? ([], [])
+                    : try await LibraryScripture.shared.search(searched, in: others, named: named, api: api, report: report)
+                var both = first + namedOthers
                 for i in 0..<max(fromBible.count, fromOthers.count) {
                     if i < fromBible.count { both.append(fromBible[i]) }
                     if i < fromOthers.count { both.append(fromOthers[i]) }
@@ -455,8 +475,8 @@ enum LibraryScripture {
 
         /// "A story I remember" over the other collections, all at once: the same meaning model and setup as the Bible's;
         /// each collection is sliced and its meaning index made once, in the background, after the Bible's.
-        func search(_ phrase: String, in ids: [String], api: APIClient,
-                    report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> [StoryFound] {
+        func search(_ phrase: String, in ids: [String], named: [NamedPassage] = [], api: APIClient,
+                    report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> (named: [StoryFound], found: [StoryFound]) {
             _ = try await search("", report: report)
             let hybrid = hybrid!
             for id in ids where files[id] == nil {
@@ -491,13 +511,29 @@ enum LibraryScripture {
                 report(.preparing(step))
             }
             let works = Dictionary(have.flatMap { files[$0]!.file.works }.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-            return await search.search(phrase).map { found in
-                let work = works[found.passage.workId]
-                let title = work?.title ?? found.passage.workId
-                let place = found.passage.ref.isEmpty || found.passage.ref == title ? nil : found.passage.ref
-                return StoryFound(id: "\(found.collection) \(found.index)", title: title, place: place, text: found.passage.text,
-                                  explanation: found.explanation)
+            func card(_ passage: TextPassage, id: String, text: String, explanation: String) -> StoryFound {
+                let title = works[passage.workId]?.title ?? passage.workId
+                let place = passage.ref.isEmpty || passage.ref == title ? nil : passage.ref
+                return StoryFound(id: id, title: title, place: place, text: text, explanation: explanation)
             }
+            // The named passages first, each side one card; a passage they show is not shown again.
+            var covered = Set<String>()
+            var cards: [StoryFound] = []
+            for entry in named {
+                for side in entry.texts {
+                    let places = search.places(side)
+                    guard let first = places.first else { continue }
+                    let ids = places.map { "\(search.collection(of: $0)) \(search.index(of: $0))" }
+                    guard covered.isDisjoint(with: ids) else { continue }
+                    covered.formUnion(ids)
+                    cards.append(card(search.passage(first), id: ids[0], text: places.map { search.passage($0).text }.joined(separator: " "),
+                                      explanation: StoryFound.known(entry)))
+                }
+            }
+            let found = await search.search(phrase).map { found in
+                card(found.passage, id: "\(found.collection) \(found.index)", text: found.passage.text, explanation: found.explanation)
+            }
+            return (cards, found.filter { !covered.contains($0.id) })
         }
     }
 }
@@ -520,5 +556,21 @@ struct StoryFound: Identifiable, Sendable {
 
     init(_ found: HybridBibleSearch.Found) {
         self.init(id: found.verse.id, title: found.verse.id, place: nil, text: found.verse.text, explanation: found.explanation)
+    }
+
+    /// Why a named passage is shown: "Known as “the golden rule”".
+    static func known(_ entry: NamedPassage) -> String { "Known as \u{201C}\(entry.names[0])\u{201D}" }
+
+    /// A named entry's note, shown above its passages.
+    static func note(_ entry: NamedPassage) -> StoryFound? {
+        entry.note.map { StoryFound(id: "note \(entry.names[0])", title: entry.names[0].capitalized, place: nil, text: $0, explanation: known(entry)) }
+    }
+
+    /// A named entry's Bible passage, its verses on one card (the first eight, if it is longer).
+    static func bible(_ ref: String, of entry: NamedPassage, in kjv: VerseLibrary) -> StoryFound? {
+        let verses = kjv.verses(ref)
+        guard !verses.isEmpty else { return nil }
+        let text = verses.prefix(8).map(\.text).joined(separator: " ") + (verses.count > 8 ? " …" : "")
+        return StoryFound(id: "named \(ref)", title: VerseReference.written(ref), place: nil, text: text, explanation: known(entry))
     }
 }
