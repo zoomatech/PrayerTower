@@ -262,19 +262,31 @@ public actor FuzzyBibleSearch {
         textIndexes[collection.id]?.version == collection.version
     }
 
-    /// The collection's slices nearest the phrase, as typed, by meaning; none until its index is ready.
-    public func search(_ phrase: String, in collection: TextCollection, count: Int = 5) throws -> [PassageMatch] {
-        guard let embedder, let index = textIndexes[collection.id], index.version == collection.version, !phrase.isEmpty else { return [] }
-        return PassageSearch.nearest(try embedder.query(phrase), in: [index], count: count)
+    /// The collections' slices nearest the phrase, as typed, by meaning, merged across the collections (each match names
+    /// its collection); a collection whose index isn't ready yet gives none.
+    public func search(_ phrase: String, in collections: [TextCollection], count: Int = 5) throws -> [PassageMatch] {
+        let ready = collections.compactMap { c in textIndexes[c.id].flatMap { $0.version == c.version ? $0 : nil } }
+        guard let embedder, !ready.isEmpty, !phrase.isEmpty else { return [] }
+        return PassageSearch.nearest(try embedder.query(phrase), in: ready, count: count)
     }
 
-    /// The collection's slices the cascade text search ranks highest; it needs no model, so it answers from the first
-    /// search.
-    public func cascadeSearch(_ phrase: String, in collection: TextCollection, count: Int = 5) -> [PassageMatch] {
+    public func search(_ phrase: String, in collection: TextCollection, count: Int = 5) throws -> [PassageMatch] {
+        try search(phrase, in: [collection], count: count)
+    }
+
+    /// The collections' slices the cascade text search ranks highest, merged across the collections; it needs no model,
+    /// so it answers from the first search.
+    public func cascadeSearch(_ phrase: String, in collections: [TextCollection], count: Int = 5) -> [PassageMatch] {
         guard !phrase.isEmpty else { return [] }
-        let (version, groups, cascade) = slices(collection)
-        let index = PassageIndex(name: collection.id, version: version, groups: groups, dimensions: 0, vectors: [])
-        return PassageSearch.cascade(phrase, in: [(index, cascade)], count: count)
+        let pairs = collections.map { collection in
+            let (version, groups, cascade) = slices(collection)
+            return (PassageIndex(name: collection.id, version: version, groups: groups, dimensions: 0, vectors: []), cascade)
+        }
+        return PassageSearch.cascade(phrase, in: pairs, count: count)
+    }
+
+    public func cascadeSearch(_ phrase: String, in collection: TextCollection, count: Int = 5) -> [PassageMatch] {
+        cascadeSearch(phrase, in: [collection], count: count)
     }
 
     /// The header its downloads carry.

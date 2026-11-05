@@ -26,6 +26,8 @@ struct LibraryView: View {
     @State private var scope = VerseSearchScope.automatic
     @State private var verseHits: [VerseSearchHit]?
     @State private var stories: [StoryFound]?
+    /// "A story I remember" searches everything offered unless set to the Bible only.
+    @State private var bibleOnly = false
     /// What the meaning search's setup is doing, the first time only: "Downloading BSB", "Indexing KJV: 1200 of 9586 groups".
     @State private var preparing: String?
     private var w: Words { model.words }
@@ -61,9 +63,17 @@ struct LibraryView: View {
                             }
                         }
                         if mode == .story {
-                            Text(w(collection == Library.bible ? "library.storyHint" : "library.storyHintTexts")).font(.footnote).foregroundStyle(Color.subtle)
+                            Text(w(bibleOffered ? "library.storyHint" : "library.storyHintTexts")).font(.footnote).foregroundStyle(Color.subtle)
+                            if bibleOffered, overview.collections.count > 1 {
+                                Picker(w("library.title"), selection: $bibleOnly) {
+                                    Text(w("library.storyEverything")).tag(false)
+                                    Text(w("library.storyBibleOnly")).tag(true)
+                                }
+                                .pickerStyle(.segmented)
+                                .onChange(of: bibleOnly) { stories = nil }
+                            }
                         }
-                        if mode != .who, overview.collections.count > 1 {
+                        if mode == .words, overview.collections.count > 1 {
                             Picker(w("library.title"), selection: Binding(get: { collection ?? "" }, set: { choose($0) })) {
                                 ForEach(overview.collections) { Text($0.title).tag($0.id) }
                             }
@@ -205,13 +215,17 @@ struct LibraryView: View {
         }
     }
 
-    /// "A story I remember", on the device: Winstons Syndicate's hybrid Bible search (meaning, cascade and word search
-    /// taking turns), over the Bible or the collection chosen, sliced as the Bible is. The meaning search's setup runs
-    /// in the background the first time; until it is done the word search answers alone for the Bible, the cascade
-    /// and the word search for the other collections.
+    /// "A story I remember", on the device: Winstons Syndicate's hybrid search, its three stages (meaning, cascade and
+    /// word search, taking turns) every time, over everything offered: the Bible and every other collection, sliced as
+    /// the Bible is, the Bible's passages and the others' taking turns; or over the Bible only when set so (Steve,
+    /// 5 November 2026: "the whole 3 stage search should be done every time but unless it is set to bible only it should
+    /// search EVERYTHING"). The meaning search's setup runs in the background the first time; until it is done the word
+    /// search answers alone for the Bible, the cascade and the word search for the other collections.
     private func story() {
         let phrase = words.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !phrase.isEmpty, let from = collection ?? (bibleOffered ? Library.bible : nil) else { return }
+        guard !phrase.isEmpty, let overview else { return }
+        let others = bibleOnly ? [] : overview.collections.map(\.id).filter { $0 != Library.bible }
+        let bible = bibleOffered
         busy = true
         error = nil
         let api = model.store.api
@@ -223,9 +237,14 @@ struct LibraryView: View {
                         if case let .preparing(step) = state { preparing = step } else { preparing = nil }
                     }
                 }
-                stories = from == Library.bible
-                    ? try await LibraryScripture.shared.search(phrase, report: report).map(StoryFound.init)
-                    : try await LibraryScripture.shared.search(phrase, in: from, api: api, report: report)
+                let fromBible = bible ? try await LibraryScripture.shared.search(phrase, report: report).map(StoryFound.init) : []
+                let fromOthers = others.isEmpty ? [] : try await LibraryScripture.shared.search(phrase, in: others, api: api, report: report)
+                var both: [StoryFound] = []
+                for i in 0..<max(fromBible.count, fromOthers.count) {
+                    if i < fromBible.count { both.append(fromBible[i]) }
+                    if i < fromOthers.count { both.append(fromOthers[i]) }
+                }
+                stories = both
             } catch {
                 self.error = error.localizedDescription
             }
@@ -430,44 +449,53 @@ enum LibraryScripture {
             return await hybrid.search(phrase)
         }
 
-        /// Each collection's hybrid search and its file, for citations; fetched the first time it is searched.
-        private var texts: [String: (search: HybridTextSearch, file: OfflineCollectionFile)] = [:]
+        /// Each collection's file, fetched the first time it is searched, and the search over the collections asked for.
+        private var files: [String: (collection: TextCollection, file: OfflineCollectionFile)] = [:]
+        private var texts: (ids: [String], search: HybridTextSearch)?
 
-        /// "A story I remember" over one of the other collections: the same meaning model and setup as the Bible's;
-        /// the collection is sliced and its meaning index made once, in the background, after the Bible's.
-        func search(_ phrase: String, in id: String, api: APIClient,
+        /// "A story I remember" over the other collections, all at once: the same meaning model and setup as the Bible's;
+        /// each collection is sliced and its meaning index made once, in the background, after the Bible's.
+        func search(_ phrase: String, in ids: [String], api: APIClient,
                     report: @escaping @Sendable (FuzzyBibleSearch.State) -> Void) async throws -> [StoryFound] {
             _ = try await search("", report: report)
             let hybrid = hybrid!
-            if texts[id] == nil {
+            for id in ids where files[id] == nil {
                 let data: Data
                 do {
                     data = try await api.searchableCollection(id)
                 } catch let e as OfflineError {
-                    // No signal: a downloaded copy will do.
-                    guard let kept = try? Data(contentsOf: OfflineLibrary().folder.appendingPathComponent("\(id).json")) else { throw e }
+                    // No signal: a downloaded copy will do; a collection with none is left out.
+                    guard let kept = try? Data(contentsOf: OfflineLibrary().folder.appendingPathComponent("\(id).json")) else {
+                        if files.isEmpty && id == ids.last { throw e }
+                        continue
+                    }
                     data = kept
                 }
-                texts[id] = (HybridTextSearch(collection: try TextCollection(data: data), fuzzy: hybrid.fuzzy),
-                             try JSONDecoder().decode(OfflineCollectionFile.self, from: data))
+                files[id] = (try TextCollection(data: data), try JSONDecoder().decode(OfflineCollectionFile.self, from: data))
             }
-            let (search, file) = texts[id]!
-            if await !search.fuzzy.isReady(search.collection) {
+            let have = ids.filter { files[$0] != nil }
+            if texts?.ids != have {
+                texts = (have, HybridTextSearch(collections: have.map { files[$0]!.collection }, fuzzy: hybrid.fuzzy))
+            }
+            let search = texts!.search
+            var waiting: [TextCollection] = []
+            for c in search.collections where await !search.fuzzy.isReady(c) { waiting.append(c) }
+            if !waiting.isEmpty {
                 let setup = setup
                 Task.detached(priority: .utility) {
-                    // After the Bible's setup, which chooses the model; a second call while it runs does nothing.
+                    // After the Bible's setup, which chooses the model; a collection already being indexed is skipped.
                     await setup?.value
-                    try? await search.fuzzy.prepare(search.collection, report: report)
+                    for c in waiting { try? await search.fuzzy.prepare(c, report: report) }
                 }
             } else if case let .preparing(step) = await search.fuzzy.state {
                 report(.preparing(step))
             }
-            let works = Dictionary(file.works.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            let works = Dictionary(have.flatMap { files[$0]!.file.works }.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             return await search.search(phrase).map { found in
                 let work = works[found.passage.workId]
                 let title = work?.title ?? found.passage.workId
                 let place = found.passage.ref.isEmpty || found.passage.ref == title ? nil : found.passage.ref
-                return StoryFound(id: "\(id) \(found.index)", title: title, place: place, text: found.passage.text,
+                return StoryFound(id: "\(found.collection) \(found.index)", title: title, place: place, text: found.passage.text,
                                   explanation: found.explanation)
             }
         }

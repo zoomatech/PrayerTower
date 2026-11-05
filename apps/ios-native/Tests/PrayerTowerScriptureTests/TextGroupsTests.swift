@@ -139,3 +139,31 @@ struct HybridTextSearchTests {
     }
 }
 #endif
+
+#if canImport(Darwin)
+struct EveryTextSearchTests {
+    static let laws = TextCollection(id: "oldest-texts", title: "Oldest texts", passages: [
+        TextPassage(workId: "hammurabi", ref: "§ 196", text: "If a man destroy the eye of another man, they shall destroy his eye."),
+        TextPassage(workId: "hammurabi", ref: "§ 197", text: "If one break a man's bone, they shall break his bone."),
+    ])
+    static let classics = TextCollection(id: "world-classics", title: "World classics", passages: [
+        TextPassage(workId: "dhammapada", ref: "Chapter 1 (The Twin-Verses), verse 5", text: "For hatred does not cease by hatred at any time: hatred ceases by love, this is an old rule."),
+        TextPassage(workId: "dhammapada", ref: "Chapter 1 (The Twin-Verses), verse 6", text: "The world does not know that we must all come to an end here."),
+    ])
+    let search = HybridTextSearch(collections: [laws, classics],
+                                  fuzzy: FuzzyBibleSearch(folder: FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)))
+
+    @Test func oneSearchCoversEveryCollectionAndNamesWhereEachPassageIs() async {
+        let eye = await search.search("destroy the eye")
+        #expect(eye.first.map { [$0.collection, $0.passage.ref, "\($0.index)"] } == ["oldest-texts", "§ 196", "0"])
+        let hatred = await search.search("hatred ceases by love")
+        #expect(hatred.first.map { [$0.collection, $0.passage.ref, "\($0.index)"] } == ["world-classics", "Chapter 1 (The Twin-Verses), verse 5", "0"])
+        #expect(hatred.first?.finder == .cascade)
+    }
+
+    @Test func theWordSearchRunsOverThemAllTogether() {
+        #expect(search.words("bone").map { search.passage($0).ref } .first == "§ 197")
+        #expect(search.words("rule").map { search.passage($0).ref }.first == "Chapter 1 (The Twin-Verses), verse 5")
+    }
+}
+#endif
