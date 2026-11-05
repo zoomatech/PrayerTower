@@ -94,9 +94,34 @@ export function orderFeed(all: Candidate[], now = new Date(), mix: FeedMix = {})
 const CANDIDATE_WINDOW_DAYS = 30;
 const CANDIDATE_LIMIT = 500;
 
-async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> {
-  const viewer = await getProfile(q, viewerId);
-  const communities = await communityIds(q, viewerId);
+/**
+ * What keeps a post out of a member's feed: not visible, sensitive while they opted out, outside
+ * their communities, blocked either way, hidden, or muted. $v is the viewer, $t the opt-out, $c the communities.
+ */
+function visibleTo(v: string, t: string, c: string) {
+  return `p.moderation_status = 'visible'
+        and (not ${t} or not p.is_sensitive)
+        and p.community_id = any(${c}::uuid[])
+        and not exists (select 1 from public.user_blocks b
+                         where (b.user_id = ${v} and b.blocked_id = p.user_id) or (b.user_id = p.user_id and b.blocked_id = ${v}))
+        and not exists (select 1 from public.hidden_posts h where h.user_id = ${v} and h.post_id = p.id)
+        and not exists (select 1 from public.user_mutes mu where mu.user_id = ${v} and mu.muted_id = p.user_id)`;
+}
+
+interface Viewer {
+  id: string;
+  traumaOptOut: boolean;
+  communities: string[];
+  mix: FeedMix;
+}
+
+/** The viewer's profile and communities, loaded once per feed request. */
+async function viewerOf(q: Queryable, viewerId: string): Promise<Viewer> {
+  const [profile, communities] = await Promise.all([getProfile(q, viewerId), communityIds(q, viewerId)]);
+  return { id: viewerId, traumaOptOut: profile?.trauma_content_opt_out ?? false, communities, mix: profile?.feed_mix ?? {} };
+}
+
+async function candidates(q: Queryable, viewer: Viewer): Promise<Candidate[]> {
   const { rows } = await q.query<{
     id: string;
     post_type: posts.PostType;
@@ -115,17 +140,11 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
             (select count(*)::int from public.prayer_events e where e.post_id = p.id and e.kind = 'praying_now') as taps,
             (select balance from public.token_accounts a where a.kind = 'post_reach' and a.post_id = p.id) as reach
        from public.posts p
-      where p.moderation_status = 'visible'
-        and p.created_at > now() - make_interval(days => $2)
-        and (not $3 or not p.is_sensitive)
-        and p.community_id = any($5::uuid[])
-        and not exists (select 1 from public.user_blocks b
-                         where (b.user_id = $1 and b.blocked_id = p.user_id) or (b.user_id = p.user_id and b.blocked_id = $1))
-        and not exists (select 1 from public.hidden_posts h where h.user_id = $1 and h.post_id = p.id)
-        and not exists (select 1 from public.user_mutes mu where mu.user_id = $1 and mu.muted_id = p.user_id)
+      where p.created_at > now() - make_interval(days => $2)
+        and ${visibleTo('$1', '$3', '$5')}
       order by p.created_at desc
       limit $4`,
-    [viewerId, CANDIDATE_WINDOW_DAYS, viewer?.trauma_content_opt_out ?? false, CANDIDATE_LIMIT, communities],
+    [viewer.id, CANDIDATE_WINDOW_DAYS, viewer.traumaOptOut, CANDIDATE_LIMIT, viewer.communities],
   );
   return rows.map((r) => ({
     id: r.id,
@@ -139,6 +158,34 @@ async function candidates(q: Queryable, viewerId: string): Promise<Candidate[]> 
     reach: Number(r.reach ?? 0),
     mine: r.mine,
   }));
+}
+
+/** Of the given posts, the ones still in the viewer's feed (a later page of a saved order). */
+async function stillVisible(q: Queryable, viewer: Viewer, ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const { rows } = await q.query<{ id: string }>(`select p.id from public.posts p where p.id = any($4::uuid[]) and ${visibleTo('$1', '$2', '$3')}`, [
+    viewer.id,
+    viewer.traumaOptOut,
+    viewer.communities,
+    ids,
+  ]);
+  return new Set(rows.map((r) => r.id));
+}
+
+/**
+ * The order a member's feed opened in. Ranking moves with time and with every tap, so ranking each
+ * page afresh repeated some posts and skipped others while scrolling. Page 0 ranks and saves the
+ * order; later pages read from it. Kept in memory: after a restart or once stale, the next page ranks again.
+ */
+const SAVED_ORDER_MS = 30 * 60_000;
+const SAVED_ORDER_VIEWERS = 5000;
+const savedOrders = new Map<string, { ids: string[]; pinnedId: string | null; at: number }>();
+
+function saveOrder(viewerId: string, ids: string[], pinnedId: string | null, now: number) {
+  savedOrders.delete(viewerId);
+  savedOrders.set(viewerId, { ids, pinnedId, at: now });
+  // A Map keeps insertion order, so the first key is the oldest.
+  while (savedOrders.size > SAVED_ORDER_VIEWERS) savedOrders.delete(savedOrders.keys().next().value!);
 }
 
 export interface FeedTheme {
@@ -226,48 +273,58 @@ export type FeedFilter = (typeof FEED_FILTERS)[number];
  * Testimonies: answered requests with the poster's testimony, and testimony
  * posts, newest first, from the past year. Same visibility rules as the feed.
  */
-async function testimonyIds(q: Queryable, viewerId: string): Promise<string[]> {
-  const viewer = await getProfile(q, viewerId);
-  const communities = await communityIds(q, viewerId);
+async function testimonyIds(q: Queryable, viewer: Viewer): Promise<string[]> {
   const { rows } = await q.query<{ id: string }>(
     `select p.id from public.posts p
-      where p.moderation_status = 'visible'
-        and (p.testimony is not null or p.post_type = 'testimony')
+      where (p.testimony is not null or p.post_type = 'testimony')
         and coalesce(p.testimony_at, p.created_at) > now() - interval '365 days'
-        and (not $2 or not p.is_sensitive)
-        and p.community_id = any($3::uuid[])
-        and not exists (select 1 from public.user_blocks b
-                         where (b.user_id = $1 and b.blocked_id = p.user_id) or (b.user_id = p.user_id and b.blocked_id = $1))
-        and not exists (select 1 from public.hidden_posts h where h.user_id = $1 and h.post_id = p.id)
-        and not exists (select 1 from public.user_mutes mu where mu.user_id = $1 and mu.muted_id = p.user_id)
+        and ${visibleTo('$1', '$2', '$3')}
       order by coalesce(p.testimony_at, p.created_at) desc
       limit $4`,
-    [viewerId, viewer?.trauma_content_opt_out ?? false, communities, CANDIDATE_LIMIT],
+    [viewer.id, viewer.traumaOptOut, viewer.communities, CANDIDATE_LIMIT],
   );
   return rows.map((r) => r.id);
 }
 
 export async function getFeed(q: Queryable, viewerId: string, page = 0, pageSize = 20, filter: FeedFilter = 'all') {
+  const viewer = await viewerOf(q, viewerId);
+  const themeNow = () => (page === 0 ? theme(q, viewerId) : Promise.resolve(undefined));
   if (filter === 'testimonies') {
-    const ids = await testimonyIds(q, viewerId);
-    return {
-      theme: page === 0 ? await theme(q, viewerId) : undefined,
-      posts: await posts.cards(q, ids.slice(page * pageSize, (page + 1) * pageSize), viewerId),
-      pinnedId: null,
-      nextPage: (page + 1) * pageSize < ids.length ? page + 1 : null,
-    };
+    const ids = await testimonyIds(q, viewer);
+    const [t, cards] = await Promise.all([themeNow(), posts.cards(q, ids.slice(page * pageSize, (page + 1) * pageSize), viewerId)]);
+    return { theme: t, posts: cards, pinnedId: null, nextPage: (page + 1) * pageSize < ids.length ? page + 1 : null };
   }
-  // Featured Macro Needs show above the feed, so they aren't repeated in it.
-  const featured = new Set(await macroNeeds.featuredPostIds(q, viewerId));
-  const all = (await candidates(q, viewerId)).filter((c) => !featured.has(c.id));
-  const mix = (await getProfile(q, viewerId))?.feed_mix ?? {};
-  const { ordered, pinned } = orderFeed(all, new Date(), mix);
-  const slice = ordered.slice(page * pageSize, (page + 1) * pageSize);
+  const now = Date.now();
+  const saved = page > 0 ? savedOrders.get(viewerId) : undefined;
+  let ids: string[];
+  let pinnedId: string | null;
+  let slice: string[];
+  if (saved && now - saved.at < SAVED_ORDER_MS) {
+    ({ ids, pinnedId } = saved);
+    // Posts hidden, muted, blocked or removed since the feed opened drop out of the saved order.
+    const wanted = ids.slice(page * pageSize, (page + 1) * pageSize);
+    const visible = await stillVisible(q, viewer, wanted);
+    slice = wanted.filter((id) => visible.has(id));
+  } else {
+    // Featured Macro Needs show above the feed, so they aren't repeated in it.
+    const [featuredIds, all] = await Promise.all([macroNeeds.featuredPostIds(q, viewerId, viewer.communities), candidates(q, viewer)]);
+    const featured = new Set(featuredIds);
+    const { ordered, pinned } = orderFeed(
+      all.filter((c) => !featured.has(c.id)),
+      new Date(now),
+      viewer.mix,
+    );
+    ids = ordered.map((c) => c.id);
+    pinnedId = pinned?.id ?? null;
+    saveOrder(viewerId, ids, pinnedId, now);
+    slice = ids.slice(page * pageSize, (page + 1) * pageSize);
+  }
+  const [t, cards] = await Promise.all([themeNow(), posts.cards(q, slice, viewerId)]);
   return {
     // Cards carry no layout; the client renders them with the theme's layout.
-    theme: page === 0 ? await theme(q, viewerId) : undefined,
-    posts: await posts.cards(q, slice.map((c) => c.id), viewerId),
-    pinnedId: page === 0 ? (pinned?.id ?? null) : null,
-    nextPage: (page + 1) * pageSize < ordered.length ? page + 1 : null,
+    theme: t,
+    posts: cards,
+    pinnedId: page === 0 ? pinnedId : null,
+    nextPage: (page + 1) * pageSize < ids.length ? page + 1 : null,
   };
 }

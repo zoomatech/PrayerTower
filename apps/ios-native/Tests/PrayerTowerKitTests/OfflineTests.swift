@@ -16,6 +16,16 @@ import Testing
         #expect(await s.read("feed") == nil)
     }
 
+    @Test func savedFeedShowsWithoutTheServer() async {
+        let s = store()
+        let api = APIClient(baseURL: URL(string: "https://api.example.test")!) { nil }
+        #expect(await api.savedFeed(store: s) == nil)
+        await s.save("feed", Data(#"{"theme":null,"posts":[],"pinnedId":null,"nextPage":1}"#.utf8))
+        let saved = await api.savedFeed(store: s)
+        #expect(saved?.value.nextPage == 1)
+        #expect(saved?.savedAt != nil)
+    }
+
     @Test func queueSendsInOrderAndStopsWhenOffline() async {
         let s = store()
         await s.enqueue(label: "Praying Now", path: "/a", body: Data(), key: "1")

@@ -193,6 +193,12 @@ extension APIClient {
     }
 
     public func cachedFeed() async throws -> Saved<FeedPage> { try await cachedGet("feed", "/feed", query: ["page": "0"]) }
+    /// The feed page last saved on the device, without asking the server: shown at once on open
+    /// while the fresh page loads, so a slow connection never leaves the screen empty.
+    public func savedFeed(store: OfflineStore = .shared) async -> Saved<FeedPage>? {
+        guard let saved = await store.read("feed"), let value = try? JSONDecoder().decode(FeedPage.self, from: saved.value) else { return nil }
+        return Saved(value: value, savedAt: saved.savedAt)
+    }
     public func prayingNowOrQueue(postId: String) async throws -> PrayingNow? {
         try await postOrQueue("/posts/\(postId)/praying-now", body: [String: String](), label: "Praying Now")
     }

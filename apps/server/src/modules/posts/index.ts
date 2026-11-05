@@ -611,7 +611,10 @@ export interface CardCounts {
 /** Build post cards for a viewer, in the order given. */
 export async function cards(q: Queryable, postIds: string[], viewerId: string | null) {
   if (postIds.length === 0) return [];
-  const { rows } = await q.query<
+  // Every query below that needs only the post ids goes out at once (about 20 one-after-another
+  // round trips made a feed page slow, Supabase being on another network). On a transaction's
+  // client they still run in order (db.ts serializeQueries).
+  const mainRows = q.query<
     PostRow & {
       display_name: string;
       handle: string | null;
@@ -654,7 +657,7 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
   );
 
   // First/top comment: the poster's latest update if they bump updates, else the first comment.
-  const { rows: tops } = await q.query<CommentRow & { post_id: string }>(
+  const topRows = q.query<CommentRow & { post_id: string }>(
     `select distinct on (c.post_id) c.post_id, c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
             p.id as user_id, p.display_name, p.handle
        from public.comments c
@@ -668,75 +671,83 @@ export async function cards(q: Queryable, postIds: string[], viewerId: string | 
                c.created_at asc`,
     [postIds],
   );
-  const topByPost = new Map(tops.map((t) => [t.post_id, t]));
-
   // Drawn vine (Admin → Feed skins → comments as leaves): each card brings its newest few
   // comments, so they can spread outward and downward from the post toward the next one.
-  const leavesByPost = new Map<string, CommentRow[]>();
-  const { rows: tree } = await q.query<{ on: boolean; n: number }>(
-    'select skins_enabled and comment_tree_enabled as on, least(comment_tree_leaves, $1)::int as n from public.skin_settings',
-    [FEED_LEAVES],
-  );
-  if (tree[0]?.on) {
-    const { rows: recent } = await q.query<CommentRow & { post_id: string }>(
-      `select * from (
-         select c.post_id, c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
-                p.id as user_id, p.display_name, p.handle,
-                row_number() over (partition by c.post_id order by c.created_at desc, c.id desc) as n
-           from public.comments c join public.profiles p on p.id = c.user_id
-          where c.post_id = any($1::uuid[]) and c.moderation_status = 'visible'
-            and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)) x
-        where x.n <= $3
-        order by x.post_id, x.created_at desc, x.id desc`,
-      [postIds, viewerId, tree[0].n],
+  const leavesOf = async () => {
+    const leavesByPost = new Map<string, CommentRow[]>();
+    const { rows: tree } = await q.query<{ on: boolean; n: number }>(
+      'select skins_enabled and comment_tree_enabled as on, least(comment_tree_leaves, $1)::int as n from public.skin_settings',
+      [FEED_LEAVES],
     );
-    for (const c of recent) {
-      const list = leavesByPost.get(c.post_id);
-      if (list) list.push(c);
-      else leavesByPost.set(c.post_id, [c]);
+    if (tree[0]?.on) {
+      const { rows: recent } = await q.query<CommentRow & { post_id: string }>(
+        `select * from (
+           select c.post_id, c.id, c.parent_id, c.body, c.is_update, c.is_anonymous, c.created_at,
+                  p.id as user_id, p.display_name, p.handle,
+                  row_number() over (partition by c.post_id order by c.created_at desc, c.id desc) as n
+             from public.comments c join public.profiles p on p.id = c.user_id
+            where c.post_id = any($1::uuid[]) and c.moderation_status = 'visible'
+              and not exists (select 1 from public.user_blocks b where b.user_id = $2 and b.blocked_id = c.user_id)) x
+          where x.n <= $3
+          order by x.post_id, x.created_at desc, x.id desc`,
+        [postIds, viewerId, tree[0].n],
+      );
+      for (const c of recent) {
+        const list = leavesByPost.get(c.post_id);
+        if (list) list.push(c);
+        else leavesByPost.set(c.post_id, [c]);
+      }
     }
-  }
+    return leavesByPost;
+  };
   // One query, not one per card: parallel per-card queries took every pool connection (load test 2026-10-28).
-  const reachByPost = await tokens.reachOfMany(q, postIds);
+  const reachRows = tokens.reachOfMany(q, postIds);
   // Posts copied from the author's Facebook or Threads ("From Facebook").
-  const { rows: copies } = await q.query<{ post_id: string; source: 'facebook' | 'threads' }>(
+  const copyRows = q.query<{ post_id: string; source: 'facebook' | 'threads' }>(
     'select post_id, source from public.crosspost_imports where post_id = any($1::uuid[])',
     [postIds],
   );
-  const copiedFrom = new Map(copies.map((c) => [c.post_id, c.source]));
-
   // The viewer's own active commitment on each post (vine tendrils, "Committed" state).
-  const { rows: mine } = await q.query<{ post_id: string; id: string; frequency: string }>(
+  const mineRows = q.query<{ post_id: string; id: string; frequency: string }>(
     `select post_id, id, frequency from public.commitments
       where user_id = $1 and status = 'active' and post_id = any($2::uuid[])`,
     [viewerId, postIds],
   );
-  const myCommitment = new Map(mine.map((c) => [c.post_id, { id: c.id, frequency: c.frequency }]));
-
   // The viewer's own quick reactions ("Light a candle", "Standing with you").
-  const { rows: quick } = await q.query<{ post_id: string; kinds: string[] }>(
+  const quickRows = q.query<{ post_id: string; kinds: string[] }>(
     `select post_id, array_agg(kind order by kind) as kinds from public.quick_reactions
       where user_id = $1 and post_id = any($2::uuid[]) group by post_id`,
     [viewerId, postIds],
   );
-  const myQuick = new Map(quick.map((r) => [r.post_id, r.kinds]));
-
-  // Towns ("Carol in Albuquerque"), while switched on: only when the viewer and the
-  // author are both members of the post's community, never on an anonymous post.
-  const towns = await townsFor(q, rows.filter((r) => !r.is_anonymous).map((r) => ({ postId: r.id, communityId: r.community_id, userId: r.user_id })), viewerId);
-
   // Each community's enabled reactions decide which actions its cards offer.
-  const { rows: enabled } = await q.query<{ id: string; enabled_reactions: string[] }>(
+  const enabledRows = q.query<{ id: string; enabled_reactions: string[] }>(
     `select id, enabled_reactions::text[] as enabled_reactions from public.communities
       where id in (select community_id from public.posts where id = any($1::uuid[]))`,
     [postIds],
   );
+  const [{ rows }, { rows: tops }, leavesByPost, reachByPost, { rows: copies }, { rows: mine }, { rows: quick }, { rows: enabled }] = await Promise.all([
+    mainRows,
+    topRows,
+    leavesOf(),
+    reachRows,
+    copyRows,
+    mineRows,
+    quickRows,
+    enabledRows,
+  ]);
+  const topByPost = new Map(tops.map((t) => [t.post_id, t]));
+  const copiedFrom = new Map(copies.map((c) => [c.post_id, c.source]));
+  const myCommitment = new Map(mine.map((c) => [c.post_id, { id: c.id, frequency: c.frequency }]));
+  const myQuick = new Map(quick.map((r) => [r.post_id, r.kinds]));
   const actionsByCommunity = new Map(enabled.map((c) => [c.id, cardActions(c.enabled_reactions)]));
 
+  // Towns ("Carol in Albuquerque"), while switched on: only when the viewer and the
+  // author are both members of the post's community, never on an anonymous post.
+  const townsNow = townsFor(q, rows.filter((r) => !r.is_anonymous).map((r) => ({ postId: r.id, communityId: r.community_id, userId: r.user_id })), viewerId);
+
   const authorIds = [...new Set(rows.map((r) => r.user_id))];
-  const tiers = await tiersOf(q, authorIds);
   // Verified pastors' badge ("Pastor · Grace Chapel"), never on an anonymous post.
-  const pastors = await badgesOf(q, authorIds);
+  const [towns, tiers, pastors] = await Promise.all([townsNow, tiersOf(q, authorIds), badgesOf(q, authorIds)]);
   // Tier icons: anonymous posts and anonymous members (private track) show a tier only to the author.
   const tierShown = (r: (typeof rows)[number]) =>
     (!r.is_anonymous && !r.private_tier) || r.user_id === viewerId ? (tiers.get(r.user_id)?.tier ?? null) : null;
