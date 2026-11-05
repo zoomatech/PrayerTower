@@ -65,6 +65,16 @@ final class AccessibilityAuditTests: XCTestCase {
                     // At the default size: at the largest, each card fills the screen, the top pass
                     // already sees them whole, and a feed dragged that far is still settling.
                     if size == Self.sizes[0] {
+                        // A fresh copy of the feed first: a second audit of the same screen was handed
+                        // the first audit's places for every word (the top of the feed's, 35 points
+                        // off in the Prayer Tower), so it measured bare stone beside the words.
+                        let back = app.navigationBars[name].buttons["Skins"]
+                        if back.waitForExistence(timeout: 3) { back.tap() }
+                        if app.navigationBars["Skins"].waitForExistence(timeout: 5), link.waitForExistence(timeout: 5) {
+                            link.tap()
+                            _ = app.navigationBars[name].waitForExistence(timeout: 5)
+                            sleep(3)
+                        }
                         // Press-and-drag, which stops dead when the finger lifts: a swipe leaves the feed
                         // gliding, and the audit's picture then no longer matches where the words are.
                         let window = app.windows.firstMatch
