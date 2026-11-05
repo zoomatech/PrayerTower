@@ -80,7 +80,14 @@ public enum ReportReason {
 }
 
 private struct PostWrapper: Decodable { let post: Card }
-private struct CommentsWrapper: Decodable { let comments: [Comment] }
+private struct CommentsWrapper: Decodable { let comments: [Comment]; let threads: Int? }
+
+/// The first conversations on a post (each with its replies), and how many there are in all.
+public struct CommentPage: Sendable, Equatable {
+    public let comments: [Comment]
+    /// Top-level conversations in all; nil when every comment came.
+    public let threads: Int?
+}
 private struct Testimony: Encodable { let testimony: String? }
 
 extension APIClient {
@@ -88,7 +95,15 @@ extension APIClient {
     public func comments(postId: String) async throws -> [Comment] { try await (get("/posts/\(postId)/comments") as CommentsWrapper).comments }
     public func addComment(postId: String, _ c: NewComment) async throws -> AddedComment { try await post("/posts/\(postId)/comments", body: c) }
     public func deleteComment(_ id: String) async throws -> Ignored { try await send(request("DELETE", "/comments/\(id)")) }
-    public func prayers(postId: String) async throws -> Prayers { try await get("/posts/\(postId)/prayers") }
+    /// With a limit, the first conversations only ("+ more" asks again without one).
+    public func comments(postId: String, limit: Int?) async throws -> CommentPage {
+        let r: CommentsWrapper = try await get("/posts/\(postId)/comments", query: limit.map { ["limit": String($0)] } ?? [:])
+        return CommentPage(comments: r.comments, threads: r.threads)
+    }
+    /// With a limit, the most recent names only; count is always everyone.
+    public func prayers(postId: String, limit: Int? = nil) async throws -> Prayers {
+        try await get("/posts/\(postId)/prayers", query: limit.map { ["limit": String($0)] } ?? [:])
+    }
     /// Only the poster: marks it answered, with their testimony if they wrote one.
     public func markAnswered(postId: String, testimony: String? = nil) async throws -> Card {
         let t = testimony?.trimmingCharacters(in: .whitespacesAndNewlines)

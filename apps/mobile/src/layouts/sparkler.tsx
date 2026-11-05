@@ -15,11 +15,11 @@
 //   * The poster's profile picture sits in the upper right corner of the post's square.
 // Buttons, comments and paging come from the shared skin hooks (docs/SKIN_HOOKS.md).
 import type { Card, FeedTheme } from '@prayer-tower/shared';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, FlatList, Image, StyleSheet, Text, TextInput, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, AppState, FlatList, StyleSheet, Text, TextInput, useColorScheme, View, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import { FbComments, type FbInk } from '@/components/fb-comments';
 import { CardInk } from '@/components/post-card';
@@ -32,6 +32,7 @@ import { colors, radius, space } from '@/lib/theme';
 
 import type { FeedLayoutProps } from './index';
 import { feedListTuning } from './list-tuning';
+import { CachedPhoto } from '@/components/cached-photo';
 
 const DEFAULTS = { backdrop: '#000000', stripe: '#8FD3FF' };
 type SparklerTokens = typeof DEFAULTS;
@@ -140,17 +141,41 @@ export function sparks(rnd: () => number, n = 16) {
 }
 
 const STILL_SPRAY = sparks(seeded(5));
+/** A dozen sprays made once and cycled, instead of a new random spray built on every frame. */
+const SPRAYS = Array.from({ length: 12 }, () => sparks(Math.random));
+
+/**
+ * The clock (ms), read every `ms` while the feed is on screen and the app is in front, and none under Reduce
+ * Motion. Before, the sparkler's two timers redrew 20 times a second even behind other tabs and
+ * with the app in the background.
+ */
+function useTick(ms: number, still: boolean) {
+  const [now, setNow] = useState(0);
+  const [focused, setFocused] = useState(true);
+  const [active, setActive] = useState(AppState.currentState !== 'background');
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => setActive(s === 'active'));
+    return () => sub.remove();
+  }, []);
+  useEffect(() => {
+    if (still || !focused || !active) return;
+    const id = setInterval(() => setNow(Date.now()), ms);
+    return () => clearInterval(id);
+  }, [ms, still, focused, active]);
+  return now;
+}
 
 /** The burning tip with embers streaming down below it: the leading animation (Steve). Still under Reduce Motion. */
 function Sparkler({ still }: { still: boolean }) {
-  // Each tick redraws a fresh spray and moves the embers down.
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (still) return;
-    const id = setInterval(() => setTick((n) => n + 1), 50);
-    return () => clearInterval(id);
-  }, [still]);
-  const spray = still ? STILL_SPRAY : sparks(Math.random);
+  // Each tick shows the next spray and moves the embers down.
+  const tick = Math.round(useTick(50, still) / 50);
+  const spray = still ? STILL_SPRAY : SPRAYS[tick % SPRAYS.length]!;
   const phase = still ? 0.35 : (tick % 24) / 24;
   const c = SPARK_BOX / 2;
   return (
@@ -193,7 +218,7 @@ function initials(name: string) {
 function ProfilePic({ card }: { card: Card }) {
   return (
     <View style={styles.pic} testID={`sparkler-pic-${card.id}`} aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {card.author.photoUrl ? <Image source={{ uri: card.author.photoUrl }} style={styles.picPhoto} accessibilityIgnoresInvertColors /> : <Text style={styles.picText}>{initials(card.author.displayName)}</Text>}
+      {card.author.photoUrl ? <CachedPhoto url={card.author.photoUrl} style={styles.picPhoto} /> : <Text style={styles.picText}>{initials(card.author.displayName)}</Text>}
     </View>
   );
 }
@@ -373,12 +398,7 @@ export class DustTrail {
 /** The trail of sparkle and stardust the sparkler leaves (still under Reduce Motion). */
 function SparkleTrail({ tip, scrolled, still }: { tip: number; scrolled: number; still: boolean }) {
   const [trail] = useState(() => new DustTrail());
-  const [time, setTime] = useState(0);
-  useEffect(() => {
-    if (still) return;
-    const id = setInterval(() => setTime(Date.now() / 1000), 50);
-    return () => clearInterval(id);
-  }, [still]);
+  const time = useTick(50, still) / 1000;
   const dark = useColorScheme() === 'dark';
   // Where the sparkler has been, held on the screen (never carried by the scroll), each mote drifting
   // on the way it was laid and slowing, none of it permanent (Steve, 2026-11-02).

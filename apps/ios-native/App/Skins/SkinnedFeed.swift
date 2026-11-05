@@ -203,28 +203,62 @@ struct Stalk: View {
         }
         // The glow's blur reads as smudged text beside the accessibility sizes' giant letters.
         .shadow(color: glow ? Color(look.stem).opacity(0.8) : .clear, radius: glow ? 8 : 0)
-        .overlay(alignment: .top) { if look.vineStyle == .neon && !still { Spark(color: Color(look.stem)) } }
+        // Under Reduce Motion the spark stays, calmer (Spark picks the calm one).
+        .overlay(alignment: .top) { if look.vineStyle == .neon { Spark(color: Color(look.stem)) } }
     }
 }
 
-/// A spark with a fading tail running down Neon Cinderella's rod, again and again.
+/// A spark with a fading tail running down Neon Cinderella's rod, again and again, at 30 frames
+/// a second like the other skins (it ran at the screen's full 120 on ProMotion iPhones).
 struct Spark: View {
     let color: Color
+    @Environment(\.accessibilityReduceMotion) private var still
     /// Held still inside the snapshot tests (XCTest is loaded in the app there), so each picture matches its reference.
     static var frozen: Bool { GrowingIn<EmptyView>.frozen }
     var body: some View {
-        TimelineView(.animation(paused: Self.frozen)) { t in
+        if still {
+            CalmSpark(color: color)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: Self.frozen)) { t in
+                GeometryReader { geo in
+                    let phase = Self.frozen ? 0.1 : t.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4
+                    let y = phase * min(geo.size.height, 2400)
+                    Capsule()
+                        .fill(LinearGradient(colors: [color.opacity(0), color, .white], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 4, height: 40)
+                        .position(x: 20, y: y)
+                        .neonTube(color)
+                }
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+/// The spark under Reduce Motion (Steve, 2026-11-05): it keeps sparkling, slowly, and moves down
+/// the rod only while the feed scrolls. It holds its place on the screen, so the rod slides past
+/// it as you scroll and it stops the moment scrolling stops; it never travels on its own.
+private struct CalmSpark: View {
+    let color: Color
+    /// Where on the screen the spark holds, from the top.
+    private static let screenY: CGFloat = 320
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: Spark.frozen ? 3600 : 1.0 / 8)) { t in
             GeometryReader { geo in
-                let phase = Self.frozen ? 0.1 : t.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4
-                let y = phase * min(geo.size.height, 2400)
+                let top = geo.frame(in: .global).minY
+                let y = min(max(Self.screenY - top, 20), max(geo.size.height - 20, 20))
+                // A slow shimmer, about one breath every 2.5 seconds.
+                let glow = Spark.frozen ? 1 : 0.65 + 0.35 * sin(t.date.timeIntervalSinceReferenceDate * 2 * .pi / 2.5)
                 Capsule()
                     .fill(LinearGradient(colors: [color.opacity(0), color, .white], startPoint: .top, endPoint: .bottom))
                     .frame(width: 4, height: 40)
+                    .opacity(glow)
                     .position(x: 20, y: y)
                     .neonTube(color)
             }
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

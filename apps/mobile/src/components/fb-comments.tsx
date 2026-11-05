@@ -10,12 +10,13 @@
 // Each skin passes its own colors (`FbInk`); the comments and buttons come from skins/comments.ts.
 import type { Card, Comment } from '@prayer-tower/shared';
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText, TSpan } from 'react-native-svg';
 
 import { useLocale } from '@/lib/i18n';
 import { useCommentActions, usePostComments, repliesAt } from '@/skins/comments';
 import { useFeedHooks } from '@/skins/feed-hooks';
+import { CachedPhoto } from '@/components/cached-photo';
 
 export interface FbInk {
   /** Names and words. */
@@ -55,7 +56,7 @@ function Avatar({ who, size, ink }: { who: Comment['author']; size: number; ink:
   return (
     <View aria-hidden style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: ink.avatar }]}>
       {who.photoUrl ? (
-        <Image source={{ uri: who.photoUrl }} style={{ width: size, height: size }} accessibilityIgnoresInvertColors />
+        <CachedPhoto url={who.photoUrl} style={{ width: size, height: size }} />
       ) : (
         <Text style={[styles.avatarText, { color: ink.avatarText, fontSize: Math.round(size * 0.4) }]}>{initials(who.displayName)}</Text>
       )}
