@@ -50,6 +50,9 @@ import { breakpoints, colors, radius, space, type } from '@/lib/theme';
 import { tabletTokens } from '@/layouts/tower';
 import { vineTokens } from '@/layouts/vine';
 
+/** Conversations and "who prayed" names shown before "+ more" (Steve, 2026-11-05). */
+const FIRST_PAGE = 20;
+
 export default function PostScreen() {
   const { id, celebrate: celebrateParam, comment: sharedCommentId, believe: believeParam, draft } = useLocalSearchParams<{ id: string; celebrate?: string; comment?: string; believe?: string; draft?: string }>();
   const { celebrate, overlay } = useCelebration();
@@ -76,6 +79,11 @@ export default function PostScreen() {
   const [card, setCard] = useState<Card | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  // A popular request opens with its first conversations and names; "+ more" brings the rest.
+  // A shared comment's link opens everything, so the shared comment is there to highlight.
+  const [showAll, setShowAll] = useState(() => !!sharedCommentId);
+  const [allPrayed, setAllPrayed] = useState(false);
+  const [threads, setThreads] = useState<number | null>(null);
   const [prayers, setPrayers] = useState<{ count: number; people: { id: string | null; displayName: string }[] } | null>(null);
   // A comment taken down by a moderator comes back here to change and post again (path back).
   const [text, setText] = useState(typeof draft === 'string' ? draft.slice(0, 5000) : '');
@@ -119,15 +127,21 @@ export default function PostScreen() {
       setCard(p.post);
       setSavedAt(p.savedAt ?? null);
       if (p.savedAt) return;
-      const [c, pr, t, pw] = await Promise.all([api.comments(id), api.prayers(id), api.tokens(), api.powerPrayerStatus()]);
+      const [c, pr, t, pw] = await Promise.all([
+        api.comments(id, showAll ? undefined : FIRST_PAGE),
+        api.prayers(id, allPrayed ? undefined : FIRST_PAGE),
+        api.tokens(),
+        api.powerPrayerStatus(),
+      ]);
       setPower(pw);
       setTokens(t);
       setComments(c.comments);
+      setThreads(c.threads ?? null);
       setPrayers(pr);
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [id]);
+  }, [id, showAll, allPrayed]);
 
   useEffect(() => {
     load();
@@ -154,6 +168,8 @@ export default function PostScreen() {
     };
   }, [comments, part, partTotal, t]);
 
+  const shownThreads = useMemo(() => comments.filter((c) => (c.depth ?? 0) === 0).length, [comments]);
+
   const send = async (isUpdate = false, confirmed = false) => {
     setBusy(true);
     setError(null);
@@ -173,7 +189,9 @@ export default function PostScreen() {
       setText('');
       setReplyTo(null);
       setPart(null);
-      await load();
+      // Your new comment may be past the first conversations: show them all (that reloads).
+      if (showAll) await load();
+      else setShowAll(true);
     } catch (e) {
       // A resting thread's "reply again in N minutes" is shown as the server wrote it.
       setError(errorText(e));
@@ -545,7 +563,15 @@ export default function PostScreen() {
               {t('post.prayed', { count: prayers.count })}
             </Text>
             {prayers.people.length > 0 ? (
-              <Text style={type.body}>{prayers.people.map((p) => p.displayName).join(', ')}</Text>
+              <Text style={type.body}>
+                {prayers.people.map((p) => p.displayName).join(', ')}
+                {prayers.count > prayers.people.length ? (
+                  <Text style={styles.reply} onPress={() => setAllPrayed(true)} accessibilityRole="button">
+                    {' '}
+                    {t('post.morePrayed', { n: prayers.count - prayers.people.length })}
+                  </Text>
+                ) : null}
+              </Text>
             ) : null}
             {card?.isMine && prayers.count > 0 ? (
               thanked !== null ? (
@@ -606,6 +632,9 @@ export default function PostScreen() {
                   </View>
                 ))
               )}
+              {!showAll && threads !== null && threads > shownThreads ? (
+                <Button small variant="ghost" label={t('post.showMore', { n: threads - shownThreads })} onPress={() => setShowAll(true)} />
+              ) : null}
             </View>
 
             <View style={styles.section}>

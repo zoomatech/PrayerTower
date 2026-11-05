@@ -773,6 +773,8 @@ const es: Messages & { enums: Record<string, Record<string, string>> } = {
     thankEveryone: "Agradecer a todos los que oraron",
     comments: "Comentarios",
     noComments: "Aún no hay comentarios.",
+    showMore: "+ %{n} más",
+    morePrayed: "+ %{n} más",
     reply: "Responder",
     shareComment: "“%{body}” (%{name}, en una petición de Prayer Tower) %{url}",
     share: "Compartir",

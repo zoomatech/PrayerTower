@@ -8,6 +8,7 @@ struct FeedView: View {
     /// The member's feed skin; nil is the plain column.
     @State private var theme: FeedTheme?
     @State private var nextPage: Int?
+    @State private var loadingMore = false
     @State private var done: [String: Set<CardAction>] = [:]
     @State private var encouraging: Card?
     /// The writing screen, open, with whatever was already typed in a skin's own post box. (An
@@ -173,18 +174,20 @@ struct FeedView: View {
     }
 
     private func load() async {
+        // Opening with nothing on screen: show the feed saved on the device right away, then replace
+        // it with the fresh one. Before this, a slow connection showed nothing for up to 15 seconds.
+        if posts.isEmpty, let saved = await model.store.api.savedFeed() {
+            show(saved.value)
+            // Later pages wait for the fresh first page, so they follow the server's current order.
+            nextPage = nil
+        }
         do {
             let saved = try await model.store.api.cachedFeed()
             let page = saved.value
             savedAt = saved.savedAt
             pending = await OfflineStore.shared.pending().count
             dropped = await OfflineStore.shared.droppedNow().map { "\(model.words.server($0.label)): \($0.message)" }
-            posts = page.posts
-            // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
-            // In demo mode, the skin chosen under Me → Feed style wins over the launch one.
-            let sample = SampleServer.isOn() ? (model.feedStyle ?? SampleServer.skin()) : nil
-            theme = sample.flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
-            nextPage = page.nextPage
+            show(page)
             error = nil
             await WidgetBridge.update(page, model: model)
         } catch let e as APIError where e.needsCode {
@@ -196,10 +199,30 @@ struct FeedView: View {
         }
     }
 
+    private func show(_ page: FeedPage) {
+        posts = page.posts
+        // Skin screenshots (scripts/mac-screenshots-native.sh) draw the sample feed in a built-in skin.
+        // In demo mode, the skin chosen under Me → Feed style wins over the launch one.
+        let sample = SampleServer.isOn() ? (model.feedStyle ?? SampleServer.skin()) : nil
+        theme = sample.flatMap { slug in AuditSamplesView.skins.first { $0.slug == slug } } ?? page.theme
+        nextPage = page.nextPage
+    }
+
+    /// The next page when the last card shows. One request at a time (the last row's task could
+    /// start it twice), and a failure says so instead of the feed just stopping.
     private func more() async {
-        guard let page = nextPage, let next = try? await model.store.api.feed(page: page) else { return }
-        posts += next.posts.filter { p in !posts.contains { $0.id == p.id } }
-        nextPage = next.nextPage
+        guard let page = nextPage, !loadingMore else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        do {
+            let next = try await model.store.api.feed(page: page)
+            let have = Set(posts.map(\.id))
+            posts += next.posts.filter { !have.contains($0.id) }
+            nextPage = next.nextPage
+        } catch {
+            // A short notice; the posts already shown stay on screen (the error overlay covers them).
+            notice = error.localizedDescription
+        }
     }
 
     private func act(_ action: CardAction, on card: Card) {

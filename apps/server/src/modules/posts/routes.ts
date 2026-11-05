@@ -22,6 +22,9 @@ import * as radioThanks from '../radio/thanksgiving.js';
 import * as ceaseless from '../radio/ceaseless.js';
 import * as trail from '../radio/trail.js';
 
+/** Optional ?limit= on long lists (comments, who prayed); the apps ask for 20 and show "+ more". */
+const PageLimit = z.object({ limit: z.coerce.number().int().min(1).max(500).optional() });
+
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov' } as const;
 
 export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient | null) {
@@ -111,7 +114,13 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.get<{ Params: { id: string } }>('/posts/:id/comments', async (req) => {
     const viewerId = requireUser(req);
     if (!(await posts.getViewable(db, viewerId, req.params.id))) throw notFound('Post');
-    return { comments: await kindNorms.arrange(db, req.params.id, viewerId, await posts.listComments(db, req.params.id, viewerId)) };
+    const all = await kindNorms.arrange(db, req.params.id, viewerId, await posts.listComments(db, req.params.id, viewerId));
+    // ?limit=20 sends the first 20 conversations (each with its replies) and how many there are,
+    // so a popular post opens fast and the app shows "+ more". Without it, every comment comes.
+    const { limit } = PageLimit.parse(req.query);
+    if (!limit) return { comments: all };
+    const threads = all.filter((c) => c.depth === 0).length;
+    return { comments: posts.firstThreads(all, limit), threads };
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/comments', async (req, reply) => {
@@ -158,7 +167,8 @@ export function postRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
   app.get<{ Params: { id: string } }>('/posts/:id/prayers', async (req) => {
     const viewerId = requireUser(req);
     if (!(await posts.getViewable(db, viewerId, req.params.id))) throw notFound('Post');
-    return posts.prayers(db, req.params.id, viewerId);
+    // ?limit=20 sends the 20 most recent names; count is always everyone.
+    return posts.prayers(db, req.params.id, viewerId, PageLimit.parse(req.query).limit);
   });
 
   app.post<{ Params: { id: string } }>('/posts/:id/thanks', async (req) => {

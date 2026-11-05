@@ -4,7 +4,7 @@
 import { MESSAGE_MAX_CHARS, type ConversationView } from '@prayer-tower/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 
 import { CrisisSupport } from '@/components/crisis';
 import { CoolDownCard } from '@/components/cool-down-card';
@@ -45,21 +45,34 @@ export function ConversationPane({ id, onClose }: { id: string; onClose?: () => 
   const [picked, setPicked] = useState<string[]>([]);
   const scroll = useRef<ScrollViewInstance>(null);
 
+  // The newest message marked read, so "read" is sent once per new message, not on every poll.
+  const readUpTo = useRef<string | null>(null);
   const load = useCallback(async () => {
     try {
       const v = await api.conversation(id);
       setView(v);
-      api.markConversationRead(id).catch(() => undefined);
+      const last = v.messages.at(-1)?.id ?? '';
+      if (readUpTo.current !== last) {
+        readUpTo.current = last;
+        api.markConversationRead(id).catch(() => undefined);
+      }
     } catch (e) {
       setError(errorText(e));
     }
   }, [id]);
 
+  // Polls while shown and the app is in front; a phone in a pocket asks nothing.
   useFocusEffect(
     useCallback(() => {
       load();
-      const timer = setInterval(load, POLL_MS);
-      return () => clearInterval(timer);
+      const timer = setInterval(() => {
+        if (AppState.currentState !== 'background') load();
+      }, POLL_MS);
+      const sub = AppState.addEventListener('change', (s) => s === 'active' && void load());
+      return () => {
+        clearInterval(timer);
+        sub.remove();
+      };
     }, [load]),
   );
 

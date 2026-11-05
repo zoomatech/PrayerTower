@@ -20,14 +20,20 @@ export function feedRoutes(app: FastifyInstance, db: Db, storage: SupabaseClient
     return { ...feed, posts: await signMedia(storage, feed.posts) };
   });
 
-  // Your branch (Vine 2.0): all your own requests, newest first, on one branch of the vine.
+  // Your branch (Vine 2.0): all your own requests, newest first, on one branch of the vine,
+  // a page at a time (it built 100 full cards in one go before).
   app.get('/me/branch', async (req) => {
     const userId = requireUser(req);
+    const { page, pageSize } = z
+      .object({ page: z.coerce.number().int().min(0).default(0), pageSize: z.coerce.number().int().min(1).max(50).default(20) })
+      .parse(req.query);
     const { rows } = await db.query<{ id: string }>(
-      `select id from public.posts where user_id = $1 and moderation_status not in ('removed', 'private_cast') order by created_at desc limit 100`,
-      [userId],
+      `select id from public.posts where user_id = $1 and moderation_status not in ('removed', 'private_cast')
+        order by created_at desc, id desc offset $2 limit $3`,
+      [userId, page * pageSize, pageSize + 1],
     );
-    return { posts: await signMedia(storage, await posts.cards(db, rows.map((r) => r.id), userId)) };
+    const ids = rows.slice(0, pageSize).map((r) => r.id);
+    return { posts: await signMedia(storage, await posts.cards(db, ids, userId)), nextPage: rows.length > pageSize ? page + 1 : null };
   });
 
   // Scripture leaves for the Vine feed, from the viewer's communities.

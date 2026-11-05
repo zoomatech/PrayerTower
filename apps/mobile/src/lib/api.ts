@@ -2170,11 +2170,12 @@ export const api = {
   markAnswered: (id: string, testimony?: string) => post<{ post: Card; crisis: boolean }>(`/posts/${id}/answered`, testimony ? { testimony } : {}),
   setTestimony: (id: string, body: string) => put<{ post: Card; crisis: boolean }>(`/posts/${id}/testimony`, { body }),
   removeTestimony: (id: string) => request<{ post: Card }>('DELETE', `/posts/${id}/testimony`),
-  comments: (id: string) => get<{ comments: Comment[] }>(`/posts/${id}/comments`),
+  /** With a limit: the first conversations and how many there are in all (threads). */
+  comments: (id: string, limit?: number) => get<{ comments: Comment[]; threads?: number }>(`/posts/${id}/comments${limit ? `?limit=${limit}` : ''}`),
   addComment: (id: string, body: string, opts: { parentId?: string; isUpdate?: boolean; part?: number } = {}) =>
     post<{ comment: { id: string; crisis: boolean; harm?: HarmNote | null }; coolDown?: boolean; resting?: boolean }>(`/posts/${id}/comments`, { body, ...opts }),
-  prayers: (id: string) =>
-    get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers`),
+  prayers: (id: string, limit?: number) =>
+    get<{ count: number; people: { id: string | null; displayName: string; lastPrayedAt: string }[] }>(`/posts/${id}/prayers${limit ? `?limit=${limit}` : ''}`),
   prayingNow: (id: string) => postOrQueue<{ eventId: string; integrityText: string }>(`/posts/${id}/praying-now`, {}, 'Praying Now'),
   commit: (id: string, input: { frequency: Frequency; vowText: string; durationDays?: number }) =>
     post<{ commitment: Commitment }>(`/posts/${id}/commitments`, input),
@@ -2198,7 +2199,7 @@ export const api = {
       idempotencyKey: `radio-${postId}-${Date.now()}`,
       amplify,
     }),
-  myBranch: () => get<{ posts: Card[] }>('/me/branch'),
+  myBranch: (page = 0) => get<{ posts: Card[]; nextPage?: number | null }>(`/me/branch?page=${page}`),
   feedThemes: () => get<FeedThemeChoices>('/me/feed-themes'),
   myThemeProposals: () => get<{ proposals: ThemeProposal[] }>('/me/theme-proposals'),
   proposeTheme: (input: { name: string; description: string; layout: MakerLayout; tokens: Record<string, string | number | boolean> }) =>

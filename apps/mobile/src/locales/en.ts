@@ -842,6 +842,8 @@ const en = {
     thankEveryone: "Thank everyone who prayed",
     comments: "Comments",
     noComments: "No comments yet.",
+    showMore: "+ %{n} more",
+    morePrayed: "+ %{n} more",
     reply: "Reply",
     shareComment: "“%{body}” (%{name}, on a Prayer Tower request) %{url}",
     share: "Share",
